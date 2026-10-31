@@ -1,0 +1,328 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>MAP 自适应练习 · 高分挑战版</title>
+    <style>
+        * { box-sizing: border-box; font-family: 'Segoe UI', Roboto, sans-serif; margin: 0; padding: 0; }
+        body { background: linear-gradient(145deg, #1e2b3c 0%, #0f1a26 100%); min-height: 100vh; display: flex; justify-content: center; align-items: center; padding: 20px; }
+        .map-container { max-width: 950px; width: 100%; background: #ffffff; border-radius: 36px; box-shadow: 0 30px 50px rgba(0,0,0,0.6); overflow: hidden; }
+        .progress-bar { background: #d9e2ec; height: 8px; width: 100%; }
+        .progress-fill { height: 8px; width: 0%; background: #2c7be5; transition: width 0.3s ease; }
+        .test-header { display: flex; justify-content: space-between; align-items: center; padding: 24px 32px 12px; border-bottom: 2px solid #eef2f7; flex-wrap: wrap; gap: 10px; }
+        .subject-badge { background: #1e2b3c; color: white; font-weight: 600; padding: 8px 20px; border-radius: 40px; }
+        .question-counter, .difficulty-indicator { color: #4a5a6e; font-weight: 600; background: #f0f4fa; padding: 8px 20px; border-radius: 40px; }
+        .question-panel { padding: 32px 40px 24px; }
+        .question-text { font-size: 1.4rem; font-weight: 500; color: #0b1a2b; line-height: 1.5; margin-bottom: 30px; white-space: pre-wrap; }
+        .options-grid { display: flex; flex-direction: column; gap: 14px; margin-bottom: 30px; }
+        .option-btn { background: #f9fcff; border: 2px solid #d0ddea; border-radius: 20px; padding: 18px 28px; font-size: 1.15rem; font-weight: 500; color: #1a2c3f; text-align: left; cursor: pointer; transition: all 0.15s; display: flex; align-items: center; gap: 18px; }
+        .option-btn:hover:not(:disabled) { background: #e7f0fd; border-color: #2c7be5; transform: translateY(-2px); }
+        .option-btn.correct { background: #d7f0e0; border-color: #1e8e5e; color: #0c4a2e; }
+        .option-btn.wrong { background: #ffe5e5; border-color: #d43b3b; color: #7a1f1f; }
+        .option-btn:disabled { cursor: default; opacity: 0.95; }
+        .option-letter { font-weight: 700; background: #fff; width: 40px; height: 40px; border-radius: 12px; display: flex; align-items: center; justify-content: center; color: #1e2b3c; flex-shrink: 0; }
+        .option-btn.correct .option-letter { background: #1e8e5e; color: white; }
+        .option-btn.wrong .option-letter { background: #d43b3b; color: white; }
+        .feedback-area { background: #f3f7fe; border-radius: 18px; padding: 18px 24px; margin: 10px 0 20px; font-size: 1.15rem; color: #0e2b4a; display: flex; border-left: 6px solid #2c7be5; min-height: 60px; font-weight: 500; }
+        .feedback-area.correct-feedback { background: #e6f7ef; border-left-color: #1e8e5e; color: #0b4b2e; }
+        .feedback-area.wrong-feedback { background: #ffefef; border-left-color: #d43b3b; color: #7a1f1f; }
+        .action-buttons { display: flex; gap: 16px; justify-content: flex-end; padding: 8px 40px 40px; }
+        .btn { border: none; font-weight: 600; font-size: 1.2rem; padding: 16px 34px; border-radius: 40px; cursor: pointer; transition: 0.15s; }
+        .btn-primary { background: #2c7be5; color: white; box-shadow: 0 8px 18px rgba(44,123,229,0.3); }
+        .btn-primary:disabled { background: #b6c9e0; cursor: not-allowed; box-shadow: none; }
+        .btn-outline { background: #fff; border: 2px solid #cbd8e9; color: #1e2b3c; }
+        .btn-outline:disabled { opacity: 0.5; cursor: not-allowed; }
+        .result-screen { padding: 48px 40px; text-align: center; }
+        .score-big { font-size: 4rem; font-weight: 800; color: #2c7be5; margin: 20px 0; }
+        .score-detail { font-size: 1.3rem; color: #3d5068; margin-bottom: 20px; background: #f3f8ff; padding: 20px 30px; border-radius: 30px; display: inline-block; }
+        .restart-btn { background: #1e2b3c; color: white; padding: 16px 48px; font-size: 1.2rem; border-radius: 40px; font-weight: 600; cursor: pointer; border: none; margin-top: 20px; }
+        .hidden { display: none !important; }
+        .subject-selector { display: flex; flex-wrap: wrap; gap: 10px; justify-content: center; margin: 24px 0; }
+        .subject-btn { background: #f0f4fa; border: 2px solid #cbd8e9; border-radius: 30px; padding: 12px 28px; font-weight: 600; cursor: pointer; transition: 0.15s; }
+        .subject-btn:hover { background: #e0ecff; border-color: #2c7be5; }
+    </style>
+</head>
+<body>
+<div class="map-container">
+    <div class="progress-bar"><div class="progress-fill" id="progressFill"></div></div>
+
+    <div id="subjectView">
+        <div class="test-header"><span class="subject-badge">MAP 高分挑战</span><span class="question-counter">选择科目</span></div>
+        <div class="question-panel" style="text-align: center;">
+            <div style="font-size: 2rem; font-weight: 600; margin: 20px 0 10px; color: #0b1a2b;">🎯 自适应挑战</div>
+            <div style="font-size: 1.1rem; color: #3d5068; margin-bottom: 20px;">顶级难度题库 · 每科40题 · 答对难度提升</div>
+            <div class="subject-selector" id="subjectSelector"></div>
+            <div style="font-size: 0.9rem; color: #6a7f99; margin-top: 20px;">最终分数 0-350，由正确率和最终稳定难度共同决定</div>
+        </div>
+    </div>
+
+    <div id="quizView" class="hidden">
+        <div class="test-header">
+            <span class="subject-badge" id="subjectBadge">Math</span>
+            <span class="question-counter" id="questionCounter">Question 1 / 40</span>
+            <span class="difficulty-indicator" id="difficultyDisplay">难度 5</span>
+        </div>
+        <div class="question-panel">
+            <div class="question-text" id="questionText"></div>
+            <div class="options-grid" id="optionsContainer"></div>
+            <div class="feedback-area" id="feedbackArea">选择一个答案</div>
+        </div>
+        <div class="action-buttons">
+            <button class="btn btn-outline" id="skipBtn">跳过</button>
+            <button class="btn btn-primary" id="nextBtn" disabled>下一题</button>
+        </div>
+    </div>
+
+    <div id="resultView" class="hidden">
+        <div class="result-screen">
+            <h2>✅ 测试完成</h2>
+            <div class="score-big" id="finalScore">0</div>
+            <div class="score-detail" id="finalDetail">0 / 40 正确</div>
+            <div style="margin-bottom: 30px; font-size: 1.1rem; color: #1e2b3c;" id="difficultyResult"></div>
+            <button class="restart-btn" id="restartBtn">返回科目选择</button>
+        </div>
+    </div>
+</div>
+
+<script>
+    // 高难度题库 (大幅提升难度，匹配 1000+ Lexile/Quantile 水平)
+    function generateQuestionBank() {
+        const math = [
+            {q:'Solve for x: 3x² - 12 = 0 (x > 0)',o:['2','3','4','6'],a:0,d:1},
+            {q:'If f(x) = 2x + 3, what is f⁻¹(7)?',o:['2','4','5','10'],a:0,d:1},
+            {q:'What is the slope of the line perpendicular to y = -2x + 5?',o:['-2','-1/2','1/2','2'],a:2,d:2},
+            {q:'Factor: x² - 5x + 6',o:['(x-2)(x-3)','(x+2)(x+3)','(x-1)(x-6)','(x+1)(x-6)'],a:0,d:2},
+            {q:'What is the value of log₂(32)?',o:['3','4','5','6'],a:2,d:3},
+            {q:'The sum of three consecutive even integers is 84. What is the largest?',o:['26','28','30','32'],a:2,d:3},
+            {q:'Simplify: (x³y²)² / (x²y³)',o:['x⁴y','x⁴/y','x⁸y','x⁴y⁷'],a:0,d:4},
+            {q:'In a right triangle, legs are 5 and 12. What is sin(θ) opposite to 5?',o:['5/12','5/13','12/13','13/12'],a:1,d:4},
+            {q:'If 2^(x+1) = 16, what is x?',o:['2','3','4','5'],a:1,d:5},
+            {q:'What is the vertex of the parabola y = 2(x-3)² - 4?',o:['(3, -4)','(-3, -4)','(3, 4)','(-3, 4)'],a:0,d:5},
+            {q:'Solve for x: |2x - 5| = 9',o:['x=7 or -2','x=2 or -7','x=7 only','x=-2 only'],a:0,d:6},
+            {q:'What is the 10th term of the arithmetic sequence: 3, 7, 11, 15...?',o:['37','39','41','43'],a:1,d:6},
+            {q:'Simplify: (√3 + √2)(√3 - √2)',o:['1','5','√6','2√6'],a:0,d:7},
+            {q:'The probability of drawing two red cards consecutively (without replacement) from a standard deck is?',o:['1/4','1/17','25/102','26/51'],a:2,d:7},
+            {q:'What is the domain of f(x) = √(x-2) / (x-5)?',o:['[2, 5) ∪ (5, ∞)','(2, ∞)','[2, ∞)','(5, ∞)'],a:0,d:8},
+            {q:'If cos(x) = 3/5 and x is in Q1, what is sin(2x)?',o:['24/25','12/25','7/25','-24/25'],a:0,d:8},
+            {q:'Evaluate: lim(x→0) (sin(3x) / 5x)',o:['3/5','5/3','1','0'],a:0,d:9},
+            {q:'If matrix A = [[2,1],[3,4]], what is the determinant?',o:['5','8','10','11'],a:0,d:9},
+            {q:'What is the derivative of f(x) = x² e^x?',o:['2x e^x','x e^x','e^x(x²+2x)','e^x(x²+1)'],a:2,d:10},
+            {q:'Find the integral: ∫ (3x² + 2x) dx',o:['x³ + x² + C','3x³ + x² + C','x³ + 2x² + C','6x + 2 + C'],a:0,d:10}
+        ];
+
+        const lang = [
+            {q:'Identify the error: "Neither of the boys were ready."',o:['Neither','of','were','ready'],a:2,d:1},
+            {q:'What is the meaning of the idiom "bite the bullet"?',o:['To eat quickly','To endure a painful situation','To act aggressively','To avoid a problem'],a:1,d:1},
+            {q:'Choose the correct word: The effect was ______.',o:['profound','profoundly','profounding','profoundness'],a:0,d:2},
+            {q:'Which sentence uses the semicolon correctly?',o:['I have a dog; and a cat.','I have a dog; it is brown.','I have a dog, it; is brown.','I have; a dog and a cat.'],a:1,d:2},
+            {q:'What is the definition of "ubiquitous"?',o:['Rare','Everywhere','Hidden','Ancient'],a:1,d:3},
+            {q:'Identify the clause type: "Because it was raining, we stayed inside."',o:['Independent','Dependent (Adverbial)','Relative','Noun'],a:1,d:3},
+            {q:'Choose the correct pronoun: Between you and ______, this is a bad idea.',o:['I','me','myself','we'],a:1,d:4},
+            {q:'What literary device is used in "The wind whispered through the trees"?',o:['Simile','Metaphor','Personification','Hyperbole'],a:2,d:4},
+            {q:'Which word is a synonym for "ephemeral"?',o:['Eternal','Fleeting','Solid','Mysterious'],a:1,d:5},
+            {q:'Correct the dangling modifier: "Walking down the street, the trees were beautiful."',o:['Walking down the street, I saw beautiful trees.','The trees were beautiful walking down the street.','Walking down the street, beautiful trees.','The street had beautiful trees walking.'],a:0,d:5},
+            {q:'What is the subjunctive mood in: "If I were you, I would go."?',o:['were','I','would','go'],a:0,d:6},
+            {q:'Identify the tone: "The politician\'s remarks were a masterpiece of obfuscation and evasion."',o:['Admiring','Critical','Humorous','Neutral'],a:1,d:6},
+            {q:'Choose the correct word: The medicine had an immediate ______ on the patient.',o:['affect','effect','effective','affective'],a:1,d:7},
+            {q:'What is the function of "however" in: "The plan, however, failed."',o:['Conjunction','Conjunctive adverb','Preposition','Interjection'],a:1,d:7},
+            {q:'Which sentence uses the passive voice?',o:['The storm destroyed the house.','The house was destroyed by the storm.','The storm is destroying the house.','The storm will destroy the house.'],a:1,d:8},
+            {q:'What is the meaning of "ostensibly"?',o:['Actually','Apparently','Definitely','Secretly'],a:1,d:8},
+            {q:'Identify the rhetorical device: "I have a dream that one day..." (repetition of phrase)',o:['Anaphora','Epistrophe','Chiasmus','Zeugma'],a:0,d:9},
+            {q:'What is the correct plural of "criterion"?',o:['criterions','criterias','criteria','criterion'],a:2,d:9},
+            {q:'Analyze the syntax: "Only after the rain stopped did we go outside." What type of inversion is this?',o:['Subject-verb inversion','Negative inversion','Locative inversion','Conditional inversion'],a:1,d:10},
+            {q:'Which word best completes the sentence: "His argument was so ______ that no one could find a flaw."',o:['tenuous','cogent','redundant','ambiguous'],a:1,d:10}
+        ];
+
+        const read = [
+            {p:'The proliferation of misinformation online is fueled by algorithmic echo chambers that reinforce existing beliefs.',q:'What is the main cause of misinformation according to the passage?',o:['Government censorship','Algorithmic echo chambers','Lack of education','Slow news cycles'],a:1,d:1},
+            {p:'In the 19th century, the telegraph compressed time and space, allowing information to travel faster than ever before.',q:'What is the main effect of the telegraph described?',o:['Increased trade','Faster information travel','Political unification','Military dominance'],a:1,d:1},
+            {p:'The author\'s tone is one of cautious optimism: while acknowledging the risks, she believes technological solutions are within reach.',q:'What is the author\'s tone?',o:['Pessimistic','Cautiously optimistic','Indifferent','Enthusiastic'],a:1,d:2},
+            {p:'The protagonist\'s internal monologue reveals a deep-seated fear of failure, which ultimately paralyzes him.',q:'What does the protagonist\'s monologue reveal?',o:['Courage','Fear of failure','Anger','Joy'],a:1,d:2},
+            {p:'While the initial results were promising, the replication crisis in psychology has cast doubt on the reliability of many classic studies.',q:'What is the main point of the passage?',o:['Psychology is fake','Replication crisis undermines reliability','Initial results are always wrong','Classic studies are reliable'],a:1,d:3},
+            {p:'The poet uses vivid imagery of decay and ruin to symbolize the decline of the empire.',q:'What does the imagery symbolize?',o:['Growth','Decline of the empire','Beauty','War'],a:1,d:3},
+            {p:'The economic policy had a multiplier effect: increased spending led to higher income, which in turn led to further spending.',q:'What is the multiplier effect?',o:['Decreased spending','Higher income leading to more spending','Reduced economic activity','Government intervention'],a:1,d:4},
+            {p:'The author employs a satirical tone to critique the absurdity of bureaucratic inefficiency.',q:'Why does the author use satire?',o:['To entertain','To critique bureaucracy','To praise efficiency','To describe nature'],a:1,d:4},
+            {p:'The discovery of penicillin was serendipitous; Fleming noticed mold killing bacteria by accident.',q:'How was penicillin discovered?',o:['By design','By accident','By luck and design','By magic'],a:1,d:5},
+            {p:'The narrative shifts between past and present, creating a fragmented timeline that mirrors the protagonist\'s fractured memory.',q:'Why does the narrative shift timelines?',o:['To confuse','To mirror fractured memory','To show action','To add humor'],a:1,d:5},
+            {p:'The concept of "cognitive dissonance" refers to the mental discomfort experienced by a person who holds two or more contradictory beliefs.',q:'What is cognitive dissonance?',o:['Mental comfort','Mental discomfort from contradictions','A type of learning','A memory technique'],a:1,d:6},
+            {p:'The author argues that globalization has homogenized culture, erasing unique local traditions.',q:'What is the author\'s argument?',o:['Globalization preserves culture','Globalization homogenizes culture','Globalization is good','Local traditions are strong'],a:1,d:6},
+            {p:'The poem\'s meter is iambic pentameter, with a rhyme scheme of ABAB CDCD EFEF GG, typical of a Shakespearean sonnet.',q:'What type of sonnet is described?',o:['Petrarchan','Shakespearean','Spenserian','Miltonic'],a:1,d:7},
+            {p:'The study\'s methodology was flawed: it lacked a control group, making causal inferences impossible.',q:'Why are causal inferences impossible?',o:['Too many variables','Lack of control group','Small sample size','Bad data'],a:1,d:7},
+            {p:'The protagonist\'s epiphany occurs when he realizes that his obsession with wealth has alienated his family.',q:'What is the epiphany?',o:['Wealth is good','Obsession with wealth alienated family','Family is unimportant','He should work harder'],a:1,d:8},
+            {p:'The author uses a stream-of-consciousness technique to depict the chaotic inner thoughts of the character.',q:'What technique is used?',o:['Dialogue','Stream of consciousness','Flashback','Foreshadowing'],a:1,d:8},
+            {p:'The historical context of the novel is the Industrial Revolution, which brought about massive social and economic upheaval.',q:'What is the historical context?',o:['Renaissance','Industrial Revolution','World War I','Cold War'],a:1,d:9},
+            {p:'The philosopher\'s argument is teleological: it explains phenomena by their purpose or end goal rather than their causes.',q:'What type of argument is described?',o:['Causal','Teleological','Empirical','Logical'],a:1,d:9},
+            {p:'The author employs unreliable narration, forcing the reader to question the truth of the protagonist\'s account.',q:'What effect does the unreliable narration have?',o:['Trust the narrator','Question the truth','Enjoy the story','Ignore the plot'],a:1,d:10},
+            {p:'The metafictional elements in the novel break the fourth wall, reminding the reader that they are reading a work of fiction.',q:'What is metafiction?',o:['Fiction about fiction','Historical fiction','Science fiction','Realistic fiction'],a:0,d:10}
+        ];
+
+        const sci = [
+            {q:'What is the primary function of the mitochondria?',o:['Protein synthesis','ATP production','Lipid storage','DNA replication'],a:1,d:1},
+            {q:'What is Newton\'s second law of motion?',o:['F=ma','E=mc²','PV=nRT','v=d/t'],a:0,d:1},
+            {q:'What is the chemical formula for table salt?',o:['NaCl','KCl','CaCl₂','MgCl₂'],a:0,d:2},
+            {q:'What is the powerhouse of the cell?',o:['Nucleus','Mitochondria','Ribosome','Golgi'],a:1,d:2},
+            {q:'What is the process by which plants make food?',o:['Respiration','Photosynthesis','Transpiration','Digestion'],a:1,d:3},
+            {q:'What is the most abundant gas in Earth\'s atmosphere?',o:['Oxygen','Nitrogen','Carbon dioxide','Argon'],a:1,d:3},
+            {q:'What is the theory of relativity proposed by?',o:['Newton','Einstein','Galileo','Bohr'],a:1,d:4},
+            {q:'What is the pH of a neutral solution?',o:['0','7','14','1'],a:1,d:4},
+            {q:'What is the function of DNA?',o:['Energy storage','Genetic information storage','Catalysis','Transport'],a:1,d:5},
+            {q:'What is the speed of light in a vacuum (approx)?',o:['3×10⁸ m/s','3×10⁶ m/s','3×10¹⁰ m/s','3×10⁵ m/s'],a:0,d:5},
+            {q:'What is the first law of thermodynamics?',o:['Energy is conserved','Entropy increases','Force equals mass times acceleration','Action-reaction'],a:0,d:6},
+            {q:'What is the role of enzymes in biological reactions?',o:['Increase activation energy','Decrease activation energy','Provide energy','Consume energy'],a:1,d:6},
+            {q:'What is the difference between mitosis and meiosis?',o:['Mitosis produces 4 cells, meiosis 2','Mitosis produces 2 identical cells, meiosis 4 different','Both produce 2 cells','Mitosis is for sex cells'],a:1,d:7},
+            {q:'What is the Heisenberg uncertainty principle?',o:['You can know both position and momentum exactly','You cannot know both position and momentum exactly','Energy is quantized','Light is a wave'],a:1,d:7},
+            {q:'What is the function of the ribosome?',o:['Lipid synthesis','Protein synthesis','Carbohydrate synthesis','DNA replication'],a:1,d:8},
+            {q:'What is the greenhouse effect?',o:['Cooling of Earth','Trapping of heat by gases','Ozone depletion','Acid rain'],a:1,d:8},
+            {q:'What is the difference between an ionic and covalent bond?',o:['Ionic shares electrons, covalent transfers','Ionic transfers electrons, covalent shares','Both share electrons','Both transfer electrons'],a:1,d:9},
+            {q:'What is the Doppler effect?',o:['Change in frequency due to motion','Change in amplitude due to distance','Change in wavelength due to medium','Change in speed due to gravity'],a:0,d:9},
+            {q:'What is the role of ATP synthase in cellular respiration?',o:['Break down glucose','Produce ATP','Store oxygen','Transport electrons'],a:1,d:10},
+            {q:'What is the Pauli exclusion principle?',o:['No two electrons can have the same quantum numbers','Electrons orbit the nucleus','Energy is quantized','Light is a particle'],a:0,d:10}
+        ];
+
+        const bank = { Math:[], 'Language Usage':[], Reading:[], Science:[] };
+        const expand = (arr, sub) => {
+            for(let d=1; d<=10; d++) {
+                let pool = arr.filter(x=>x.d===d);
+                if(pool.length===0) pool = arr;
+                for(let i=0; i<4; i++) {
+                    const item = pool[i%pool.length];
+                    bank[sub].push({
+                        subject: sub,
+                        question: item.p ? `Passage: ${item.p}\nQ: ${item.q}` : item.q,
+                        options: item.o,
+                        answerIndex: item.a,
+                        difficulty: d
+                    });
+                }
+            }
+        };
+        expand(math, 'Math'); expand(lang, 'Language Usage'); expand(read, 'Reading'); expand(sci, 'Science');
+        return bank;
+    }
+
+    const questionBank = generateQuestionBank();
+    let currentSubject = 'Math', currentQuestion = null, currentIndex = 0;
+    let currentDifficulty = 5, correctCount = 0, usedQuestions = [];
+    const TOTAL = 40;
+
+    const subjectView = document.getElementById('subjectView'), quizView = document.getElementById('quizView'), resultView = document.getElementById('resultView');
+    const subjectSelector = document.getElementById('subjectSelector'), subjectBadge = document.getElementById('subjectBadge');
+    const questionCounter = document.getElementById('questionCounter'), difficultyDisplay = document.getElementById('difficultyDisplay');
+    const questionText = document.getElementById('questionText'), optionsContainer = document.getElementById('optionsContainer');
+    const feedbackArea = document.getElementById('feedbackArea'), nextBtn = document.getElementById('nextBtn'), skipBtn = document.getElementById('skipBtn');
+    const progressFill = document.getElementById('progressFill'), finalScore = document.getElementById('finalScore'), finalDetail = document.getElementById('finalDetail');
+    const difficultyResult = document.getElementById('difficultyResult'), restartBtn = document.getElementById('restartBtn');
+
+    function initSubjectView() {
+        subjectView.classList.remove('hidden'); quizView.classList.add('hidden'); resultView.classList.add('hidden');
+        progressFill.style.width = '0%';
+        subjectSelector.innerHTML = '';
+        ['Math', 'Language Usage', 'Reading', 'Science'].forEach(sub => {
+            const btn = document.createElement('button'); btn.className = 'subject-btn'; btn.textContent = sub;
+            btn.onclick = () => startQuiz(sub); subjectSelector.appendChild(btn);
+        });
+    }
+
+    function startQuiz(subject) {
+        currentSubject = subject; subjectView.classList.add('hidden'); quizView.classList.remove('hidden'); resultView.classList.add('hidden');
+        currentIndex = 0; currentDifficulty = 5; correctCount = 0; usedQuestions = [];
+        loadNextQuestion();
+    }
+
+    function pickQuestion(diff) {
+        const bank = questionBank[currentSubject];
+        let candidates = bank.filter(q => !usedQuestions.includes(q) && q.difficulty === diff);
+        if (candidates.length === 0) {
+            let minDiff = 100;
+            bank.forEach(q => { if (!usedQuestions.includes(q)) minDiff = Math.min(minDiff, Math.abs(q.difficulty - diff)); });
+            candidates = bank.filter(q => !usedQuestions.includes(q) && Math.abs(q.difficulty - diff) === minDiff);
+        }
+        return candidates.length > 0 ? candidates[Math.floor(Math.random() * candidates.length)] : bank.filter(q => !usedQuestions.includes(q))[0];
+    }
+
+    function loadNextQuestion() {
+        if (currentIndex >= TOTAL) { showResult(); return; }
+        const q = pickQuestion(currentDifficulty);
+        if (!q) { showResult(); return; }
+        currentQuestion = q; usedQuestions.push(q);
+
+        subjectBadge.textContent = currentSubject;
+        questionCounter.textContent = `Question ${currentIndex + 1} / ${TOTAL}`;
+        difficultyDisplay.textContent = `难度 ${currentDifficulty}`;
+        questionText.textContent = q.question;
+        
+        optionsContainer.innerHTML = '';
+        q.options.forEach((opt, idx) => {
+            const btn = document.createElement('button'); btn.className = 'option-btn';
+            btn.innerHTML = `<span class="option-letter">${['A','B','C','D'][idx]}</span><span>${opt}</span>`;
+            btn.onclick = () => handleAnswer(idx); optionsContainer.appendChild(btn);
+        });
+
+        feedbackArea.textContent = '选择一个答案'; feedbackArea.className = 'feedback-area';
+        nextBtn.disabled = true; skipBtn.disabled = false;
+        nextBtn.textContent = (currentIndex === TOTAL - 1) ? '完成测试' : '下一题';
+        progressFill.style.width = `${(currentIndex / TOTAL) * 100}%`;
+    }
+
+    function handleAnswer(selectedIdx) {
+        if (!nextBtn.disabled) return; 
+        const isCorrect = (selectedIdx === currentQuestion.answerIndex);
+        
+        document.querySelectorAll('.option-btn').forEach((btn, idx) => {
+            btn.disabled = true;
+            if (idx === selectedIdx) btn.classList.add(isCorrect ? 'correct' : 'wrong');
+            if (idx === currentQuestion.answerIndex && idx !== selectedIdx) btn.classList.add('correct');
+        });
+
+        if (isCorrect) {
+            feedbackArea.textContent = '✅ 正确！'; feedbackArea.className = 'feedback-area correct-feedback';
+            correctCount++; currentDifficulty = Math.min(10, currentDifficulty + 1);
+        } else {
+            feedbackArea.textContent = `❌ 错误。正确答案: ${['A','B','C','D'][currentQuestion.answerIndex]}. ${currentQuestion.options[currentQuestion.answerIndex]}`; 
+            feedbackArea.className = 'feedback-area wrong-feedback';
+            currentDifficulty = Math.max(1, currentDifficulty - 1);
+        }
+        
+        difficultyDisplay.textContent = `难度 ${currentDifficulty}`;
+        nextBtn.disabled = false; skipBtn.disabled = true;
+    }
+
+    skipBtn.onclick = () => {
+        if (skipBtn.disabled) return;
+        const q = currentQuestion;
+        document.querySelectorAll('.option-btn').forEach((btn, idx) => {
+            btn.disabled = true;
+            if (idx === q.answerIndex) btn.classList.add('correct');
+        });
+        feedbackArea.textContent = `⏭️ 已跳过。正确答案: ${['A','B','C','D'][q.answerIndex]}. ${q.options[q.answerIndex]}`;
+        feedbackArea.className = 'feedback-area';
+        currentDifficulty = Math.max(1, currentDifficulty - 1);
+        difficultyDisplay.textContent = `难度 ${currentDifficulty}`;
+        nextBtn.disabled = false; skipBtn.disabled = true;
+    };
+
+    nextBtn.onclick = () => { currentIndex++; loadNextQuestion(); };
+
+    function showResult() {
+        quizView.classList.add('hidden'); resultView.classList.remove('hidden');
+        progressFill.style.width = '100%';
+        
+        // 新的分数计算：正确率(占60%) + 最终难度(占40%)，放大到 0-350
+        const accuracy = correctCount / TOTAL;
+        const difficultyScore = (currentDifficulty / 10);
+        // 基础保底分 0，最高可到 350
+        let finalScoreVal = Math.round((accuracy * 210) + (difficultyScore * 140)); 
+        // 如果正确率极高且难度极高，给一点上限保护
+        finalScoreVal = Math.min(350, finalScoreVal); 
+        
+        finalScore.textContent = finalScoreVal;
+        finalDetail.textContent = `正确 ${correctCount} / ${TOTAL} 题 · 最终难度 ${currentDifficulty}/10`;
+        difficultyResult.textContent = `得分配比：正确率得分 (${Math.round(accuracy * 210)}) + 难度得分 (${Math.round(difficultyScore * 140)})`;
+    }
+
+    restartBtn.onclick = initSubjectView;
+    initSubjectView();
+</script>
+</body>
+</html>
