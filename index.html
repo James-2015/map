@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>MAP 极限挑战</title>
+<title>MAP 自适应极限测试 · 全阶难度</title>
 <style>
 *{box-sizing:border-box;font-family:'Segoe UI',sans-serif;margin:0;padding:0}
 body{background:linear-gradient(145deg,#1e2b3c,#0f1a26);min-height:100vh;display:flex;justify-content:center;align-items:center;padding:20px}
@@ -49,10 +49,10 @@ body{background:linear-gradient(145deg,#1e2b3c,#0f1a26);min-height:100vh;display
 <div class="map-container">
 <div class="progress-bar"><div class="progress-fill" id="progressFill"></div></div>
 <div id="subjectView">
-<div class="test-header"><span class="subject-badge">MAP 极限挑战</span><span class="question-counter">选择科目</span></div>
+<div class="test-header"><span class="subject-badge">MAP 全阶挑战</span><span class="question-counter">选择科目</span></div>
 <div class="question-panel" style="text-align:center">
-<div style="font-size:2rem;font-weight:600;margin:20px 0 10px;color:#0b1a2b">🔥 硬核自适应挑战</div>
-<div style="font-size:1.1rem;color:#3d5068;margin-bottom:20px">包含长篇学术阅读 · 选项绝对乱序</div>
+<div style="font-size:2rem;font-weight:600;margin:20px 0 10px;color:#0b1a2b">🔥 阶梯式自适应挑战</div>
+<div style="font-size:1rem;color:#3d5068;margin-bottom:20px">1-2小学 | 3-4初中 | 5-6高中 | 7-8大学 | 9研究生 | 10博士</div>
 <div class="subject-selector" id="subjectSelector"></div>
 </div>
 </div>
@@ -76,43 +76,145 @@ body{background:linear-gradient(145deg,#1e2b3c,#0f1a26);min-height:100vh;display
 </div>
 </div>
 <script>
-// 洗牌引擎：彻底修复全选A
 function shuffleOpts(ans,wrongs){let o=[ans,...wrongs];for(let i=o.length-1;i>0;i--){const j=Math.floor(Math.random()*(i+1));[o[i],o[j]]=[o[j],o[i]];}return{options:o,answerIndex:o.indexOf(ans)};}
-// 题库生成
 function genBank(){
 const b={Math:[],'Language Usage':[],Reading:[],Science:[]};
 const shuffleArr=a=>a.sort(()=>Math.random()-.5);
-// 数学
+// Math
 for(let d=1;d<=10;d++){for(let i=0;i<40;i++){let q,ans,wrongs,v=i%4;
-if(d<=3){if(v===0){q=`Solve: ${d+i+1}x² - ${d*4}x = 0 (x>0)`;ans=`${(d*4)/(d+i+1)}`;wrongs=[`${d*2/(d+i+1)}`,`${d*4}`,`${(d+i+1)/2}`]}else if(v===1){q=`Inverse of f(x) = ${d}x - ${i+2}`;ans=`(x+${i+2})/${d}`;wrongs=[`(x-${i+2})/${d}`,`${d}x+${i+2}`,`x/${d}+${i+2}`]}else if(v===2){q=`Det of [[${d+2},${i+1}],[${i+1},${d+2}]]`;ans=`${(d+2)*(d+2)-(i+1)*(i+1)}`;wrongs=[`${(d+2)*(d+2)+(i+1)*(i+1)}`,`${(d+2)*(i+1)}`,`0`]}else{q=`Sum of roots of ${d}x² - ${d*3}x + ${d}=0?`;ans=`3`;wrongs=[`-3`,`${d}`,`${3/d}`]}}
-else if(d<=7){if(v===0){q=`lim(x→0) sin(${d}x)/${i+2}x`;ans=`${d}/${i+2}`;wrongs=[`${i+2}/${d}`,`1`,`0`]}else if(v===1){q=`Derivative of ${d+i}x³ + ${d*2}x²`;ans=`${(d+i)*3}x²+${d*4}x`;wrongs=[`${d+i}x²+${d*2}x`,`${(d+i)*3}x²+${d*2}x`,`${(d+i)*3}x³+${d*4}x²`]}else if(v===2){q=`log₂(x) + log₂(${d}) = 5. x?`;ans=`${32/d}`;wrongs=[`${32*d}`,`${32-d}`,`${d*5}`]}else{q=`Vertex of y = ${d}(x-${i+1})² - ${d*2}`;ans=`(${i+1}, -${d*2})`;wrongs=[`(-${i+1}, -${d*2})`,`(${i+1}, ${d*2})`,`(-${i+1}, ${d*2})`]}}
-else{if(v===0){q=`∫ (${d}x² + ${i}x) dx`;ans=`(${d}/3)x³+(${i}/2)x²+C`;wrongs=[`${d}x³+${i}x²+C`,`(${d}/2)x²+${i}x+C`,`${d}x²+${i}x+C`]}else if(v===1){q=`f(x)=e^(${d}x). f''(x)?`;ans=`${d*d}e^(${d}x)`;wrongs=[`${d}e^(${d}x)`,`e^(${d}x)`,`${d*d}xe^(${d}x)`]}else if(v===2){q=`Eigenvalues of [[${d},0],[0,${d+1}]]`;ans=`${d} and ${d+1}`;wrongs=[`${d} and ${d}`,`${d+1} and ${d+1}`,`${d} and 0`]}else{q=`Prob sum ${d%6+2} with two dice?`;ans=`${(d%6<1?6:d%6)}/36`;wrongs=[`1/6`,`1/12`,`2/36`]}}
+if(d<=2){ // 小学
+if(v===0){q=`${d*2+i} + ${d+i} = ?`;ans=`${d*2+i+d+i}`;wrongs=[`${d*2+i+d+i+1}`,`${d*2+i+d+i-1}`,`${d*2+i+d+i+2}`]}
+else if(v===1){q=`${d*5} - ${i+1} = ?`;ans=`${d*5-i-1}`;wrongs=[`${d*5-i}`,`${d*5-i-2}`,`${d*5-i+1}`]}
+else if(v===2){q=`${d} × ${i+2} = ?`;ans=`${d*(i+2)}`;wrongs=[`${d*(i+2)+1}`,`${d*(i+2)-1}`,`${d*(i+2)+2}`]}
+else{q=`${d*10} ÷ ${d} = ?`;ans=`10`;wrongs=[`5`,`15`,`20`]}
+}
+else if(d<=4){ // 初中
+if(v===0){q=`If ${d}x + ${i+2} = ${d*3+i+2}, what is x?`;ans=`3`;wrongs=[`${d}`,`${i+2}`,`${d*3}`]}
+else if(v===1){q=`What is the slope of y = ${d}x + ${i}?`;ans=`${d}`;wrongs=[`${i}`,`-${d}`,`1/${d}`]}
+else if(v===2){q=`Factor: x² - ${d+i}x + ${d*i}`;ans=`(x-${d})(x-${i})`;wrongs=[`(x+${d})(x+${i})`,`(x-${d})(x+${i})`,`(x+${d})(x-${i})`]}
+else{q=`Area of rectangle length ${d*2+i}, width ${d}?`;ans=`${(d*2+i)*d}`;wrongs=[`${d*2+i+d}`,`${(d*2+i)*d+2}`,`${(d*2+i)*d-1}`]}
+}
+else if(d<=6){ // 高中
+if(v===0){q=`Value of log₂(${Math.pow(2,d)})?`;ans=`${d}`;wrongs=[`${d+1}`,`${d-1}`,`${d*2}`]}
+else if(v===1){q=`Vertex of y = ${d}(x-${i})² - ${d*2}?`;ans=`(${i}, -${d*2})`;wrongs=[`(-${i}, -${d*2})`,`(${i}, ${d*2})`,`(-${i}, ${d*2})`]}
+else if(v===2){q=`Solve: |2x - ${d*2}| = ${d*3}`;ans=`${d*2.5} or -${d*0.5}`;wrongs=[`${d*2} or -${d}`,`${d} or -${d*2}`,`${d*2.5} only`]}
+else{q=`lim(x→0) (sin(${d}x) / ${i+2}x)`;ans=`${d}/${i+2}`;wrongs=[`${i+2}/${d}`,`1`,`0`]}
+}
+else if(d<=8){ // 大学
+if(v===0){q=`Derivative of f(x) = x^${d}e^x?`;ans=`e^x(x^${d}+${d}x^{${d}-1})`;wrongs=[`${d}x^{${d}-1}e^x`,`e^x(x^${d}+1)`,`x^${d}e^x`]}
+else if(v===1){q=`Integral: ∫ (${d}x² + ${i}x) dx`;ans=`(${d}/3)x³+(${i}/2)x²+C`;wrongs=[`${d}x³+${i}x²+C`,`${d}x²+${i}x+C`,`(${d}/2)x²+(${i}/3)x³+C`]}
+else if(v===2){q=`Determinant of [[${d}, ${i%3}], [${i%2}, ${d+1}]]?`;ans=`${d*(d+1) - (i%3)*(i%2)}`;wrongs=[`${d*(d+1) + (i%3)*(i%2)}`,`${d+d+1}`,`0`]}
+else{q=`Sum of roots: ${d}x² - ${d*3}x + ${d} = 0?`;ans=`3`;wrongs=[`-3`,`${d}`,`${3/d}`]}
+}
+else if(d===9){ // 研究生
+if(v===0){q=`Evaluate: lim(x→0) (e^x - 1 - x) / x²`;ans=`1/2`;wrongs=[`0`,`1`,`Infinity`]}
+else if(v===1){q=`If z = e^(iπ/4), what is z²?`;ans=`i`;wrongs=[`-1`,`1`,`-i`]}
+else if(v===2){q=`Fourier transform of a Gaussian function is a?`;ans=`Gaussian`;wrongs=[`Sine`,`Cosine`,`Exponential`]}
+else{q=`Eigenvalues of matrix [[${d},0],[0,${d+1}]]`;ans=`${d} and ${d+1}`;wrongs=[`${d} and ${d}`,`${d+1} and ${d+1}`,`${d} and 0`]}
+}
+else{ // 博士
+if(v===0){q=`What is the Euler characteristic of a torus (genus 1)?`;ans=`0`;wrongs=[`1`,`2`,`-2`]}
+else if(v===1){q=`In topology, which space is compact but not Hausdorff?`;ans=`The Sierpiński space`;wrongs=[`The real line`,`A closed interval`,`The unit sphere`]}
+else if(v===2){q=`What is the derivative of the Dirac delta function δ'(x) in the sense of distributions?`;ans=`A dipole`;wrongs=[`A constant`,`A step function`,`A ramp function`]}
+else{q=`Evaluate the integral ∫ (from -∞ to ∞) e^(-x²) dx`;ans=`√π`;wrongs=[`1`,`π`,`2π`]}
+}
 let op=shuffleOpts(ans,wrongs);b.Math.push({subject:'Math',question:q,options:op.options,answerIndex:op.answerIndex,difficulty:d});}}
 b.Math=shuffleArr(b.Math);
-// 语言
+
+// Language Usage
 for(let d=1;d<=10;d++){for(let i=0;i<40;i++){let q,ans,wrongs,v=i%4;
-if(d<=3){if(v===0){q=`Error: "The professor, along with his students, were attending."`;ans=`were attending`;wrongs=[`The professor`,`along with`,`the conference`]}else if(v===1){q=`Word: The CEO's decision was ______, ignoring advice.`;ans=`intransigent`;wrongs=[`amenable`,`pliable`,`docile`]}else if(v===2){q=`Subjunctive mood used correctly?`;ans=`I demand that he be present.`;wrongs=[`I demand that he is present.`,`I demand that he was present.`,`I demand that he will be present.`]}else{q=`Meaning of "obfuscate"?`;ans=`To make unclear`;wrongs=[`To clarify`,`To praise`,`To criticize`]}}
-else if(d<=7){if(v===0){q=`Device: "The pen is mightier than the sword."`;ans=`Metonymy`;wrongs=[`Simile`,`Personification`,`Hyperbole`]}else if(v===1){q=`Word: The argument was so ______ it convinced experts.`;ans=`cogent`;wrongs=[`tenuous`,`fallacious`,`specious`]}else if(v===2){q=`Fix dangling modifier: "Having finished the assignment, the TV was turned on."`;ans=`Having finished the assignment, I turned on the TV.`;wrongs=[`The TV was turned on having finished the assignment.`,`Having finished the assignment, the TV turned on.`,`The assignment finished, the TV was turned on.`]}else{q=`Tone: "The proposal is a masterful exercise in obfuscation."`;ans=`Critical`;wrongs=[`Admiring`,`Humorous`,`Neutral`]}}
-else{if(v===0){q=`Inversion type: "Not only did he forget keys, but he lost his wallet."`;ans=`Negative inversion`;wrongs=[`Locative inversion`,`Conditional inversion`,`Subject-verb inversion`]}else if(v===1){q=`Word: The medicine's ______ effects were felt.`;ans=`salutary`;wrongs=[`deleterious`,`insidious`,`baneful`]}else if(v===2){q=`Plural of "phenomenon"?`;ans=`phenomena`;wrongs=[`phenomenons`,`phenomenae`,`phenomenas`]}else{q=`Fallacy: "You can't trust his economics because he's not an economist."`;ans=`Ad hominem`;wrongs=[`Straw man`,`False dilemma`,`Slippery slope`]}}
+if(d<=2){ // 小学
+if(v===0){q=`Which word is a noun?`;ans=`Cat`;wrongs=[`Run`,`Quickly`,`Beautiful`]}
+else if(v===1){q=`Choose the correct pronoun: _______ is my friend.`;ans=`He`;wrongs=[`Him`,`His`,`Her`]}
+else if(v===2){q=`Past tense of "walk"?`;ans=`Walked`;wrongs=[`Walking`,`Walks`,`Walken`]}
+else{q=`Identify the verb: The dog runs.`;ans=`Runs`;wrongs=[`The`,`Dog`,`None`]}
+}
+else if(d<=4){ // 初中
+if(v===0){q=`Identify the error: "Neither of the boys were ready."`;ans=`were`;wrongs=[`Neither`,`of`,`ready`]}
+else if(v===1){q=`Synonym for "ephemeral"?`;ans=`Fleeting`;wrongs=[`Eternal`,`Solid`,`Mysterious`]}
+else if(v===2){q=`Which uses semicolon correctly?`;ans=`I have a dog; it is brown.`;wrongs=[`I have a dog; and a cat.`,`I have a dog, it; is brown.`,`I have; a dog and a cat.`]}
+else{q=`Literary device: "The wind whispered."`;ans=`Personification`;wrongs=[`Simile`,`Metaphor`,`Hyperbole`]}
+}
+else if(d<=6){ // 高中
+if(v===0){q=`Word: The effect was ______.`;ans=`profound`;wrongs=[`profoundly`,`profounding`,`profoundness`]}
+else if(v===1){q=`Clause type: "Because it rained, we stayed inside."`;ans=`Dependent (Adverbial)`;wrongs=[`Independent`,`Relative`,`Noun`]}
+else if(v===2){q=`Correct pronoun: Between you and ______, this is bad.`;ans=`me`;wrongs=[`I`,`myself`,`we`]}
+else{q=`Tone: "His masterpiece of obfuscation and evasion."`;ans=`Critical`;wrongs=[`Admiring`,`Humorous`,`Neutral`]}
+}
+else if(d<=8){ // 大学
+if(v===0){q=`Inversion: "Only after the rain stopped did we go outside."`;ans=`Negative inversion`;wrongs=[`Locative inversion`,`Conditional inversion`,`Subject-verb inversion`]}
+else if(v===1){q=`Word: His argument was so ______ no one found a flaw.`;ans=`cogent`;wrongs=[`tenuous`,`redundant`,`ambiguous`]}
+else if(v===2){q=`Plural of "criterion"?`;ans=`criteria`;wrongs=[`criterions`,`criterias`,`criterion`]}
+else{q=`Logical fallacy: "You can't trust his economics because he's not an economist."`;ans=`Ad hominem`;wrongs=[`Straw man`,`False dilemma`,`Slippery slope`]}
+}
+else if(d===9){ // 研究生
+if(v===0){q=`Which sentence uses the subjunctive mood correctly?`;ans=`I demand that he be present.`;wrongs=[`I demand that he is present.`,`I demand that he was present.`,`I demand that he will be present.`]}
+else if(v===1){q=`Identify the rhetorical device: "The pen is mightier than the sword."`;ans=`Metonymy`;wrongs=[`Simile`,`Personification`,`Hyperbole`]}
+else if(v===2){q=`Meaning of "obfuscate"?`;ans=`To make unclear`;wrongs=[`To clarify`,`To praise`,`To criticize`]}
+else{q=`Choose the correct word: The medicine had an immediate ______ on the patient.`;ans=`effect`;wrongs=[`affect`,`effective`,`affective`]}
+}
+else{ // 博士
+if(v===0){q=`Analyze the syntax: "Not only did he forget the keys, but he also lost his wallet." What type of inversion is this?`;ans=`Negative inversion`;wrongs=[`Locative inversion`,`Conditional inversion`,`Subject-verb inversion`]}
+else if(v===1){q=`Choose the best word: The professor's ______ analysis dismantled the opposing argument completely.`;ans=`incisive`;wrongs=[`superficial`,`ambiguous`,`tenuous`]}
+else if(v===2){q=`What is the meaning of the idiom "to gild the lily"?`;ans=`To unnecessarily embellish something already beautiful`;wrongs=[`To ruin a good thing by adding too much`,`To hide the truth with lies`,`To praise someone excessively`]}
+else{q=`Which rhetorical device is used in "The wind whispered through the trees"?`;ans=`Personification`;wrongs=[`Simile`,`Metaphor`,`Hyperbole`]}
+}
 let op=shuffleOpts(ans,wrongs);b['Language Usage'].push({subject:'Language Usage',question:q,options:op.options,answerIndex:op.answerIndex,difficulty:d});}}
 b['Language Usage']=shuffleArr(b['Language Usage']);
-// 长篇阅读
-const readPassages=[
-{text:`The proliferation of digital echo chambers has fundamentally altered the epistemological landscape of modern democracies. Rather than fostering a vibrant marketplace of ideas, algorithmic curation creates insulated realities where confirmation bias is not merely a psychological tendency but an engineered feature. The result is an epistemic crisis where objective truth is subordinated to tribal identity. This fragmentation does not simply create disagreement; it destroys the shared factual basis necessary for democratic deliberation, replacing it with competing, incommensurable narratives.`,q:`Based on the passage, what is the ultimate consequence of algorithmic echo chambers on democracy?`,a:`They destroy the shared factual basis required for democratic deliberation.`,w:[`They increase healthy competition among different political factions.`,`They eliminate confirmation bias through continuous exposure to data.`,`They foster a vibrant marketplace of ideas by decentralizing information.`]},
-{text:`The replication crisis in psychological science is not merely a methodological hiccup; it represents a profound challenge to the discipline's epistemological foundations. The inherent variability of human behavior, coupled with a systemic publication bias favoring novel, positive results, has cultivated a landscape where many classic findings are likely artifacts of statistical noise. This realization forces researchers to confront an uncomfortable truth: psychology's historical reliance on small sample sizes and p-hacking has severely compromised the robustness of its cumulative knowledge base.`,q:`What is the author's primary argument regarding the replication crisis?`,a:`It exposes deep epistemological flaws in psychological research methodology.`,w:[`It is a minor issue easily resolved by simply increasing sample sizes.`,`It proves that all historical psychological findings are completely fraudulent.`,`It demonstrates that human behavior is entirely unpredictable and chaotic.`]},
-{text:`In the realm of quantum mechanics, the Einstein-Podolsky-Rosen (EPR) paradox was formulated to argue that the quantum-mechanical description of physical reality was incomplete. Einstein famously derided quantum entanglement as "spooky action at a distance," believing it implied faster-than-light communication, a violation of special relativity. However, Bell's theorem later demonstrated that no local hidden-variable theory could reproduce the predictions of quantum mechanics, forcing physicists to abandon local realism and accept entanglement as a fundamental, albeit non-intuitive, feature of the universe.`,q:`According to the passage, what was the significance of Bell's theorem?`,a:`It demonstrated that local hidden-variable theories are incompatible with quantum mechanics.`,w:[`It proved that Einstein's theory of special relativity was fundamentally flawed.`,`It confirmed that faster-than-light communication is indeed possible via entanglement.`,`It validated the EPR paradox by showing that quantum mechanics is incomplete.`]},
-{text:`The existentialist notion that "existence precedes essence" is a radical departure from classical philosophical traditions. For Sartre, this means that humanity is condemned to be free; we are thrust into a meaningless universe and must forge our own meaning through authentic choices. This freedom, however, is accompanied by profound anguish, as we bear the total responsibility for our actions and, by extension, for the world we create. To escape this responsibility through "bad faith" (mauvaise foi) is to deny one's own freedom, reducing oneself to a mere object.`,q:`What does Sartre mean by "bad faith" in the context of the passage?`,a:`Denying one's inherent freedom and responsibility to avoid existential anguish.`,w:[`Believing in a higher power that dictates human destiny and purpose.`,`Acting immorally against the established norms of society.`,`Rejecting the idea that life has any inherent meaning or purpose.`]},
-{text:`The economic history of the Industrial Revolution is often framed as a triumph of technological innovation, but this narrative obscures the profound social upheaval it entailed. The enclosure movement and the subsequent migration of rural populations to urban centers created a vast, exploitable labor force. While the factory system undoubtedly generated unprecedented wealth, it simultaneously entrenched systemic inequalities and subjected workers to brutal, dehumanizing conditions. The transition to industrial capitalism was not merely an economic shift; it was a violent restructuring of human existence.`,q:`What is the author's main critique of the traditional narrative of the Industrial Revolution?`,a:`It overlooks the severe social costs and systemic inequalities accompanying the economic shift.`,w:[`It overstates the role of technological innovation in generating wealth.`,`It fails to acknowledge the economic benefits of the enclosure movement.`,`It exaggerates the dehumanizing conditions experienced by the factory workers.`]}
-];
-for(let d=1;d<=10;d++){for(let i=0;i<40;i++){let p=readPassages[i%readPassages.length],q=p.q;
-if(i>=readPassages.length){q=i%2===0?`According to the passage, which statement is best supported?`:`What can be inferred about the author's perspective?`}
-let op=shuffleOpts(p.a,p.w);b.Reading.push({subject:'Reading',question:`Passage:\n${p.text}\n\nQuestion: ${q}`,options:op.options,answerIndex:op.answerIndex,difficulty:d});}}
+
+// Reading
+const rEasy=[{t:`Tom has a dog. The dog is brown. Tom likes to play with the dog.`,q:`What color is the dog?`,a:`Brown`,w:[`Black`,`White`,`Spotty`]},{t:`Lily gets up at 6 a.m. She goes running in the park. Her favorite sport is running.`,q:`What is Lily's favorite sport?`,a:`Running`,w:[`Swimming`,`Basketball`,`Soccer`]}];
+const rMid=[{t:`The concept of "cognitive dissonance" refers to the mental discomfort experienced by a person who holds contradictory beliefs.`,q:`What is cognitive dissonance?`,a:`Mental discomfort from contradictory beliefs`,w:[`A type of learning`,`A memory technique`,`Mental comfort`]},{t:`Photosynthesis is the process by which plants use sunlight, water, and carbon dioxide to produce oxygen and energy.`,q:`What gas do plants release during photosynthesis?`,a:`Oxygen`,w:[`Carbon dioxide`,`Nitrogen`,`Hydrogen`]}];
+const rHard=[{t:`The proliferation of digital echo chambers has fundamentally altered the epistemological landscape of modern democracies. Rather than fostering a vibrant marketplace of ideas, algorithmic curation creates insulated realities where confirmation bias is not merely a psychological tendency but an engineered feature. The result is an epistemic crisis where objective truth is subordinated to tribal identity.`,q:`What is the ultimate consequence of algorithmic echo chambers?`,a:`They destroy the shared factual basis required for democratic deliberation.`,w:[`They increase healthy competition among political factions.`,`They eliminate confirmation bias through exposure to data.`,`They foster a vibrant marketplace of ideas.`]},{t:`The EPR paradox argued that quantum mechanics was incomplete. Einstein derided entanglement as "spooky action at a distance." However, Bell's theorem later demonstrated that no local hidden-variable theory could reproduce the predictions of quantum mechanics, forcing physicists to abandon local realism.`,q:`What was the significance of Bell's theorem?`,a:`It demonstrated that local hidden-variable theories are incompatible with quantum mechanics.`,w:[`It proved that special relativity was flawed.`,`It confirmed faster-than-light communication is possible.`,`It validated the EPR paradox.`]}];
+const rExtreme=[{t:`The existentialist notion that "existence precedes essence" is a radical departure from classical philosophical traditions. For Sartre, this means that humanity is condemned to be free; we are thrust into a meaningless universe and must forge our own meaning through authentic choices. This freedom, however, is accompanied by profound anguish, as we bear the total responsibility for our actions and, by extension, for the world we create. To escape this responsibility through "bad faith" is to deny one's own freedom, reducing oneself to a mere object.`,q:`What does Sartre mean by "bad faith"?`,a:`Denying one's inherent freedom and responsibility to avoid existential anguish.`,w:[`Believing in a higher power that dictates human destiny.`,`Acting immorally against the established norms of society.`,`Rejecting the idea that life has any inherent meaning.`]},{t:`The economic history of the Industrial Revolution is often framed as a triumph of technological innovation, but this narrative obscures the profound social upheaval it entailed. The enclosure movement and the subsequent migration of rural populations to urban centers created a vast, exploitable labor force. While the factory system generated unprecedented wealth, it simultaneously entrenched systemic inequalities and subjected workers to brutal, dehumanizing conditions.`,q:`What is the author's main critique of the traditional narrative?`,a:`It overlooks the severe social costs and systemic inequalities accompanying the economic shift.`,w:[`It overstates the role of technological innovation in generating wealth.`,`It fails to acknowledge the economic benefits of the enclosure movement.`,`It exaggerates the dehumanizing conditions experienced by the factory workers.`]}];
+for(let d=1;d<=10;d++){for(let i=0;i<40;i++){let p,q,ans,wrongs;
+if(d<=2){p=rEasy[i%rEasy.length];}
+else if(d<=4){p=rMid[i%rMid.length];}
+else if(d<=8){p=rHard[i%rHard.length];}
+else{p=rExtreme[i%rExtreme.length];}
+q=p.q;ans=p.a;wrongs=[...p.w];
+if(i>=p.w.length){q=d<=2?`According to the text, what is true?`:(d<=4?`Which statement is supported?`:(d<=8?`What can be inferred from the passage?`:`What does the author suggest about the broader implications?`));}
+let op=shuffleOpts(ans,wrongs);b.Reading.push({subject:'Reading',question:`Passage:\n${p.t}\n\nQuestion: ${q}`,options:op.options,answerIndex:op.answerIndex,difficulty:d});}}
 b.Reading=shuffleArr(b.Reading);
-// 科学
+
+// Science
 for(let d=1;d<=10;d++){for(let i=0;i<40;i++){let q,ans,wrongs,v=i%4;
-if(d<=3){if(v===0){q=`Function of mitochondria?`;ans=`ATP production`;wrongs=[`Protein synthesis`,`Lipid storage`,`DNA replication`]}else if(v===1){q=`Law: energy cannot be created/destroyed?`;ans=`First law of thermodynamics`;wrongs=[`Second law`,`Newton's second law`,`Law of conservation of mass`]}else if(v===2){q=`Geometry of methane (CH4)?`;ans=`Tetrahedral`;wrongs=[`Trigonal planar`,`Linear`,`Bent`]}else{q=`Organelle for protein synthesis?`;ans=`Ribosome`;wrongs=[`Golgi apparatus`,`Lysosome`,`Nucleus`]}}
-else if(d<=7){if(v===0){q=`Superposition principle?`;ans=`A system can exist in multiple states simultaneously until measured.`;wrongs=[`Particles cannot occupy the same quantum state simultaneously.`,`Energy is quantized in discrete packets.`,`Observation has no effect on the quantum state.`]}else if(v===1){q=`Best describes an enzyme?`;ans=`A biological catalyst that lowers activation energy.`;wrongs=[`A molecule that increases activation energy.`,`A structural protein providing cellular support.`,`A lipid molecule that stores energy.`]}else if(v===2){q=`Difference between ionic and covalent bonds?`;ans=`Ionic bonds transfer electrons, covalent bonds share them.`;wrongs=[`Ionic bonds share electrons, covalent bonds transfer them.`,`Both involve the complete transfer of electrons.`,`Both involve the sharing of electrons equally.`]}else{q=`Heisenberg Uncertainty Principle?`;ans=`It is impossible to simultaneously know both the exact position and momentum of a particle.`;wrongs=[`Particles can have both exact position and momentum simultaneously.`,`Energy and time can be measured precisely at the same time.`,`Electrons orbit the nucleus in perfectly defined paths.`]}}
-else{if(v===0){q=`Role of Pauli exclusion principle?`;ans=`No two electrons can have the same four quantum numbers.`;wrongs=[`Electrons can occupy the same quantum state.`,`It explains the quantization of energy levels.`,`It describes the wave-particle duality of electrons.`]}else if(v===1){q=`SN2 reaction mechanism?`;ans=`A concerted nucleophilic substitution with inversion of stereochemistry.`;wrongs=[`A stepwise reaction involving a carbocation intermediate.`,`An elimination reaction forming a double bond.`,`A radical substitution reaction initiated by light.`]}else if(v===2){q=`Function of ATP synthase in cellular respiration?`;ans=`To synthesize ATP using the proton motive force.`;wrongs=[`To break down glucose into pyruvate.`,`To transport electrons in the electron transport chain.`,`To store oxygen in muscle cells.`]}else{q=`Significance of second law of thermodynamics?`;ans=`The total entropy of an isolated system can never decrease over time.`;wrongs=[`Energy is always conserved in a closed system.`,`Heat flows spontaneously from cold to hot bodies.`,`The entropy of a system decreases during a spontaneous process.`]}}
+if(d<=2){ // 小学
+if(v===0){q=`What do plants need to make food?`;ans=`Sunlight`;wrongs=[`Darkness`,`Sand`,`Plastic`]}
+else if(v===1){q=`What is the center of an atom called?`;ans=`Nucleus`;wrongs=[`Electron`,`Proton`,`Cell`]}
+else if(v===2){q=`Which planet is closest to the Sun?`;ans=`Mercury`;wrongs=[`Earth`,`Mars`,`Venus`]}
+else{q=`What is water made of?`;ans=`H2O`;wrongs=[`CO2`,`O2`,`NaCl`]}
+}
+else if(d<=4){ // 初中
+if(v===0){q=`Primary function of mitochondria?`;ans=`ATP production`;wrongs=[`Protein synthesis`,`Lipid storage`,`DNA replication`]}
+else if(v===1){q=`Newton's second law?`;ans=`F=ma`;wrongs=[`E=mc²`,`PV=nRT`,`v=d/t`]}
+else if(v===2){q=`Process by which plants make food?`;ans=`Photosynthesis`;wrongs=[`Respiration`,`Transpiration`,`Digestion`]}
+else{q=`Most abundant gas in Earth's atmosphere?`;ans=`Nitrogen`;wrongs=[`Oxygen`,`Carbon dioxide`,`Argon`]}
+}
+else if(d<=6){ // 高中
+if(v===0){q=`What is the first law of thermodynamics?`;ans=`Energy is conserved`;wrongs=[`Entropy increases`,`Force equals mass times acceleration`,`Action-reaction`]}
+else if(v===1){q=`What is the role of enzymes?`;ans=`Decrease activation energy`;wrongs=[`Increase activation energy`,`Provide energy`,`Consume energy`]}
+else if(v===2){q=`Difference between mitosis and meiosis?`;ans=`Mitosis produces 2 identical cells, meiosis 4 different`;wrongs=[`Mitosis produces 4 cells, meiosis 2`,`Both produce 2 cells`,`Mitosis is for sex cells`]}
+else{q=`What is the function of the ribosome?`;ans=`Protein synthesis`;wrongs=[`Lipid synthesis`,`Carbohydrate synthesis`,`DNA replication`]}
+}
+else if(d<=8){ // 大学
+if(v===0){q=`What is the Heisenberg uncertainty principle?`;ans=`You cannot know both position and momentum exactly`;wrongs=[`You can know both exactly`,`Energy is quantized`,`Light is a wave`]}
+else if(v===1){q=`Ionic vs covalent bond?`;ans=`Ionic transfers electrons, covalent shares`;wrongs=[`Ionic shares electrons, covalent transfers`,`Both share electrons`,`Both transfer electrons`]}
+else if(v===2){q=`Role of ATP synthase in cellular respiration?`;ans=`Produce ATP`;wrongs=[`Break down glucose`,`Store oxygen`,`Transport electrons`]}
+else{q=`Pauli exclusion principle?`;ans=`No two electrons can have the same quantum numbers`;wrongs=[`Electrons orbit the nucleus`,`Energy is quantized`,`Light is a particle`]}
+}
+else if(d===9){ // 研究生
+if(v===0){q=`Which statement describes the Pauli exclusion principle?`;ans=`No two fermions can occupy the same quantum state simultaneously.`;wrongs=[`Bosons cannot share a quantum state.`,`Electrons orbit in discrete shells.`,`Energy is always conserved in a closed system.`]}
+else if(v===1){q=`What is the role of the Krebs cycle?`;ans=`To generate electron carriers for the electron transport chain.`;wrongs=[`To produce glucose from CO2.`,`To break down fatty acids directly.`,`To synthesize proteins.`]}
+else if(v===2){q=`What is the greenhouse effect?`;ans=`Trapping of heat by atmospheric gases`;wrongs=[`Cooling of Earth by ozone`,`Ozone depletion by CFCs`,`Acid rain from sulfur dioxide`]}
+else{q=`Which law states that entropy always increases?`;ans=`Second law of thermodynamics`;wrongs=[`First law of thermodynamics`,`Newton's law of cooling`,`Boyle's law`]}
+}
+else{ // 博士
+if(v===0){q=`Which quantum number determines the shape of an atomic orbital?`;ans=`Azimuthal quantum number (l)`;wrongs=[`Principal quantum number (n)`,`Magnetic quantum number (m)`,`Spin quantum number (s)`]}
+else if(v===1){q=`What is the effect of a catalyst on a chemical reaction?`;ans=`It lowers the activation energy without being consumed.`;wrongs=[`It increases the activation energy.`,`It changes the equilibrium constant.`,`It is consumed during the reaction.`]}
+else if(v===2){q=`What is the significance of the Schrödinger equation?`;ans=`It describes how the quantum state of a physical system changes over time.`;wrongs=[`It calculates the exact position of an electron.`,`It defines the speed of light in a vacuum.`,`It explains the emission spectrum of hydrogen only.`]}
+else{q=`In statistical mechanics, what does the partition function describe?`;ans=`The statistical properties of a system in thermodynamic equilibrium.`;wrongs=[`The exact trajectories of particles.`,`The rate of a chemical reaction.`,`The interaction between quarks.`]}
+}
 let op=shuffleOpts(ans,wrongs);b.Science.push({subject:'Science',question:q,options:op.options,answerIndex:op.answerIndex,difficulty:d});}}
 b.Science=shuffleArr(b.Science);
 return b;
