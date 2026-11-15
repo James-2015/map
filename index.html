@@ -3,22 +3,51 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>MAP 极限自适应测试 · 绝不重复终极版</title>
+<title>MAP 极限自适应测试 · 彻底反套路版</title>
 <style>
 *{box-sizing:border-box;font-family:'Segoe UI',sans-serif;margin:0;padding:0}
 body{background:linear-gradient(145deg,#1e2b3c,#0f1a26);min-height:100vh;display:flex;justify-content:center;align-items:center;padding:20px}
-.map-container{max-width:950px;width:100%;background:#fff;border-radius:36px;box-shadow:0 30px 50px rgba(0,0,0,.6);overflow:hidden}
+.map-container{max-width:1100px;width:100%;background:#fff;border-radius:36px;box-shadow:0 30px 50px rgba(0,0,0,.6);overflow:hidden}
 .progress-bar{background:#d9e2ec;height:8px;width:100%}
 .progress-fill{height:8px;width:0;background:#2c7be5;transition:width .3s}
 .test-header{display:flex;justify-content:space-between;align-items:center;padding:24px 32px 12px;border-bottom:2px solid #eef2f7;flex-wrap:wrap;gap:10px}
 .subject-badge{background:#1e2b3c;color:#fff;font-weight:600;padding:8px 20px;border-radius:40px}
 .question-counter,.difficulty-indicator{color:#4a5a6e;font-weight:600;background:#f0f4fa;padding:8px 20px;border-radius:40px}
+
+/* 默认全屏（适合短题） */
 .question-panel{padding:32px 40px 24px}
 .question-text{font-size:1.15rem;font-weight:500;color:#0b1a2b;line-height:1.7;margin-bottom:30px;white-space:pre-wrap;max-height:380px;overflow-y:auto;padding-right:10px}
-.question-text::-webkit-scrollbar{width:6px}
-.question-text::-webkit-scrollbar-thumb{background:#cbd8e9;border-radius:3px}
 .options-grid{display:flex;flex-direction:column;gap:14px;margin-bottom:30px}
-.option-btn{background:#f9fcff;border:2px solid #d0ddea;border-radius:20px;padding:18px 28px;font-size:1.1rem;font-weight:500;color:#1a2c3f;text-align:left;cursor:pointer;transition:.15s;display:flex;align-items:center;gap:18px}
+
+/* 左右分栏（适合长阅读题） */
+.question-panel.split-view {
+    display: flex;
+    gap: 20px;
+    max-height: 600px;
+}
+.question-panel.split-view .question-text {
+    flex: 1;
+    font-size: 1rem;
+    line-height: 1.6;
+    max-height: 550px;
+    padding-right: 15px;
+    border-right: 2px solid #eef2f7;
+    white-space: pre-wrap;
+    overflow-y: auto;
+    margin-bottom: 0;
+}
+.question-panel.split-view .options-grid {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    justify-content: flex-start;
+    margin-bottom: 0;
+    max-height: 550px;
+    overflow-y: auto;
+    padding-left: 5px;
+}
+
+.option-btn{background:#f9fcff;border:2px solid #d0ddea;border-radius:20px;padding:18px 28px;font-size:1rem;font-weight:500;color:#1a2c3f;text-align:left;cursor:pointer;transition:.15s;display:flex;align-items:center;gap:18px}
 .option-btn:hover:not(:disabled){background:#e7f0fd;border-color:#2c7be5;transform:translateY(-2px)}
 .option-btn.correct{background:#d7f0e0;border-color:#1e8e5e;color:#0c4a2e}
 .option-btn.wrong{background:#ffe5e5;border-color:#d43b3b;color:#7a1f1f}
@@ -53,7 +82,7 @@ body{background:linear-gradient(145deg,#1e2b3c,#0f1a26);min-height:100vh;display
     <div class="test-header"><span class="subject-badge">MAP 挑战</span><span class="question-counter">选择科目</span></div>
     <div class="question-panel" style="text-align:center">
         <div style="font-size:2rem;font-weight:600;margin:20px 0 10px;color:#0b1a2b">🔥 极限自适应题库</div>
-        <div style="font-size:1rem;color:#3d5068;margin-bottom:20px">真实高难题库 · 绝不重复 · 按钮绝对有效</div>
+        <div style="font-size:1rem;color:#3d5068;margin-bottom:20px">每科 500 题 · 选项长度随机 · 阅读分栏 · 绝不重复</div>
         <div class="subject-selector">
             <button class="subject-btn" onclick="startQuiz('Math')">Math</button>
             <button class="subject-btn" onclick="startQuiz('Language Usage')">Language Usage</button>
@@ -65,7 +94,7 @@ body{background:linear-gradient(145deg,#1e2b3c,#0f1a26);min-height:100vh;display
 
 <div id="quizView" class="hidden">
 <div class="test-header"><span class="subject-badge" id="subjectBadge">Math</span><span class="question-counter" id="questionCounter">Question 1 / 40</span><span class="difficulty-indicator" id="difficultyDisplay">难度 1</span></div>
-<div class="question-panel">
+<div class="question-panel" id="questionPanelContainer">
 <div class="question-text" id="questionText"></div>
 <div class="options-grid" id="optionsContainer"></div>
 <div class="feedback-area" id="feedbackArea">选择一个答案</div>
@@ -92,7 +121,6 @@ var questionBank = {
     Science: []
 };
 
-// 洗牌函数
 function shuffleArray(arr) {
     for (var i = arr.length - 1; i > 0; i--) {
         var j = Math.floor(Math.random() * (i + 1));
@@ -103,20 +131,52 @@ function shuffleArray(arr) {
     return arr;
 }
 
-// 添加题目到题库 (自动去重)
+// 核心反套路：彻底打乱选项内容的长度
+function createDecoyOptions(correctAns, baseWrongs, level) {
+    var allOpts = [correctAns].concat(baseWrongs);
+    var finalOpts = [];
+    
+    // 根据难度，给正确答案和干扰项添加随机长短的前后缀，彻底打破长度规律
+    for (var i = 0; i < allOpts.length; i++) {
+        var opt = allOpts[i];
+        if (Math.random() > 0.5) {
+            // 加长
+            if (level > 6) {
+                opt = opt + " (which is a profound theoretical implication)";
+            } else {
+                opt = "The exact answer is: " + opt;
+            }
+        } else {
+            // 缩短或保持原样
+            if (Math.random() > 0.5) {
+                opt = opt.substring(0, Math.max(2, opt.length - 1)) + "?";
+            }
+        }
+        finalOpts.push(opt);
+    }
+    
+    // 为了确保"选最长"不总是对，我们随机化正确答案的位置，并且确保正确答案不一定是那个被加长的
+    var shuffledOpts = shuffleArray(finalOpts);
+    return {
+        options: shuffledOpts,
+        answerIndex: shuffledOpts.indexOf(correctAns) === -1 ? shuffledOpts.indexOf(finalOpts[0]) : shuffledOpts.indexOf(correctAns)
+    };
+}
+
 function addUniqueQuestions(subject, list) {
     var seen = new Set();
     list.forEach(function(t) {
         var key = t.q + "|" + t.a;
         if (!seen.has(key)) {
             seen.add(key);
-            var opts = shuffleArray([t.a].concat(t.w));
+            var op = createDecoyOptions(t.a, t.w, t.d);
             questionBank[subject].push({
                 subject: subject,
                 question: t.q,
-                options: opts,
-                answerIndex: opts.indexOf(t.a),
-                difficulty: t.d
+                options: op.options,
+                answerIndex: op.answerIndex,
+                difficulty: t.d,
+                isLongPassage: t.isLongPassage || false
             });
         }
     });
@@ -126,7 +186,7 @@ function buildBank() {
     // ================= Math (生成庞大的唯一数学题) =================
     var mathList = [];
     for (var d = 1; d <= 10; d++) {
-        for (var i = 0; i < 40; i++) {
+        for (var i = 0; i < 50; i++) {
             var a = (d * 10 + i * 3 + 1), b = (d * 7 + i * 2 + 5);
             if (d <= 2) {
                 mathList.push({ q: "Calculate: " + a + " + " + b + " = ?", a: "" + (a+b), w: [""+(a+b+1), ""+(a+b-1), ""+(a+b+2)], d: d });
@@ -151,14 +211,14 @@ function buildBank() {
     }
     addUniqueQuestions('Math', mathList);
 
-    // ================= Language (生成庞大的唯一语法题) =================
+    // ================= Language Usage =================
     var langList = [];
     var pronoun = ["He", "She", "They", "We", "I", "The boy", "The girls"];
     var verb = ["is", "are", "was", "were", "has", "have"];
     var noun = ["dog", "cat", "car", "tree", "book", "house", "pen"];
     var contexts = ["[Literature] ", "[Formal] ", "[Everyday] ", "[Academic] ", "[Business] ", "[Journalism] ", "[Legal] ", "[Scientific] ", "[Historical] ", "[Philosophical] "];
     for (var d = 1; d <= 10; d++) {
-        for (var i = 0; i < 40; i++) {
+        for (var i = 0; i < 50; i++) {
             var p = pronoun[i % pronoun.length], v = verb[i % verb.length], n = noun[i % noun.length], ctx = contexts[i % contexts.length];
             if (d <= 2) {
                 langList.push({ q: ctx + "Correct verb: " + p + " _______ playing with the " + n + ".", a: v, w: [v+"s", v+"ing", "be "+v], d: d });
@@ -183,33 +243,33 @@ function buildBank() {
     }
     addUniqueQuestions('Language Usage', langList);
 
-    // ================= Reading (手工精选，严密对应，绝不重复) =================
+    // ================= Reading (核心改动：长篇左右分栏) =================
     var readList = [
-        // 难度 1-2
-        { q: "Passage:\nTom has a dog named Max. Max is brown and loves to play fetch in the park.\nQuestion: What color is Max?", a: "Brown", w: ["Black", "White", "Gray"], d: 1 },
-        { q: "Passage:\nLily gets up at 6 a.m. every day. She goes running in the park for an hour. Her favorite sport is running.\nQuestion: What is Lily's favorite sport?", a: "Running", w: ["Swimming", "Basketball", "Soccer"], d: 1 },
-        { q: "Passage:\nThe sun rises in the east and sets in the west. This is a natural phenomenon caused by the rotation of the Earth.\nQuestion: From which direction does the sun rise?", a: "East", w: ["West", "South", "North"], d: 2 },
-        { q: "Passage:\nWater is essential for all known forms of life. It covers about 71% of the Earth's surface. Most of the water on Earth is in the oceans.\nQuestion: Where is most of Earth's water located?", a: "Oceans", w: ["Rivers", "Lakes", "Glaciers"], d: 2 },
-        // 难度 3-4
-        { q: "Passage:\nPhotosynthesis is the process by which green plants use sunlight to synthesize foods from carbon dioxide and water. It generates oxygen as a byproduct.\nQuestion: What is the primary function of photosynthesis?", a: "To synthesize food using sunlight", w: ["To release carbon dioxide", "To consume oxygen", "To break down glucose"], d: 3 },
-        { q: "Passage:\nThe concept of 'cognitive dissonance' refers to the mental discomfort experienced by a person who holds two contradictory beliefs. To reduce this discomfort, individuals often change one of their beliefs to align with the other.\nQuestion: What is the main consequence of cognitive dissonance?", a: "Altering a belief to reduce discomfort", w: ["Increasing contradictory beliefs", "Ignoring mental discomfort", "A type of learning"], d: 3 },
-        { q: "Passage:\nIn a free market economy, prices are determined by the forces of supply and demand. When demand exceeds supply, prices tend to rise, which encourages producers to increase supply.\nQuestion: According to the passage, what happens when demand exceeds supply?", a: "Prices rise, encouraging more supply", w: ["Prices fall, reducing supply", "Prices remain constant", "Demand decreases automatically"], d: 4 },
-        { q: "Passage:\nThe Great Barrier Reef is the world's largest coral reef system. It is composed of over 2,900 individual reefs and 900 islands. It is located in the Coral Sea, off the coast of Queensland, Australia.\nQuestion: Where is the Great Barrier Reef located?", a: "Off the coast of Australia", w: ["In the Caribbean", "In the Pacific Ocean near Hawaii", "Off the coast of Florida"], d: 4 },
-        // 难度 5-6
-        { q: "Passage:\nThe human brain is highly adaptable due to neuroplasticity, which allows it to reorganize itself by forming new neural connections throughout life. This is crucial for learning new skills and recovering from brain injuries.\nQuestion: Why is neuroplasticity important?", a: "It helps the brain adapt and recover", w: ["It prevents all brain injuries", "It stops brain growth", "It reduces brain function"], d: 5 },
-        { q: "Passage:\nThe proliferation of digital echo chambers has fundamentally altered the epistemological landscape of modern democracies. Algorithmic curation creates insulated realities where confirmation bias is an engineered feature. The result is an epistemic crisis where objective truth is subordinated to tribal identity.\nQuestion: What is the ultimate consequence of algorithmic echo chambers on democracy?", a: "They destroy the shared factual basis required for deliberation.", w: ["They increase healthy competition among factions.", "They eliminate confirmation bias through exposure.", "They foster a vibrant marketplace of ideas."], d: 5 },
-        { q: "Passage:\nThe EPR paradox argued that quantum mechanics was incomplete. Einstein derided entanglement as 'spooky action at a distance.' However, Bell's theorem later demonstrated that no local hidden-variable theory could reproduce the predictions of quantum mechanics, forcing physicists to abandon local realism.\nQuestion: What was the significance of Bell's theorem?", a: "It showed local hidden-variable theories are incompatible with quantum mechanics.", w: ["It proved special relativity was flawed.", "It confirmed faster-than-light communication.", "It validated the EPR paradox."], d: 6 },
-        { q: "Passage:\nThe Industrial Revolution marked a major turning point in history. Almost every aspect of daily life was influenced. Average income and population began to exhibit unprecedented sustained growth.\nQuestion: What was a major effect of the Industrial Revolution?", a: "Unprecedented sustained growth in income and population", w: ["A decline in population", "The end of agriculture", "A decrease in average income"], d: 6 },
-        // 难度 7-8
-        { q: "Passage:\nThe economic history of the Industrial Revolution is often framed as a triumph of innovation, but this narrative obscures the profound social upheaval it entailed. The enclosure movement created a vast, exploitable labor force, entrenching systemic inequalities.\nQuestion: What is the author's main critique of the traditional narrative?", a: "It overlooks the severe social costs and systemic inequalities.", w: ["It overstates the role of technological innovation.", "It fails to acknowledge economic benefits.", "It exaggerates dehumanizing conditions."], d: 7 },
-        { q: "Passage:\nThe existentialist notion that 'existence precedes essence' is a radical departure from classical philosophy. For Sartre, humanity is condemned to be free; we are thrust into a meaningless universe and must forge our own meaning. To escape this responsibility through 'bad faith' is to deny one's own freedom.\nQuestion: What does Sartre mean by 'bad faith'?", a: "Denying inherent freedom and responsibility to avoid anguish.", w: ["Believing in a higher power that dictates destiny.", "Acting immorally against norms.", "Rejecting that life has any inherent meaning."], d: 7 },
-        { q: "Passage:\nThe anthropic principle in cosmology suggests that the universe's physical constants are fine-tuned to allow the emergence of life. The weak anthropic principle states that our observations are necessarily biased by our existence. The strong version proposes the universe must have properties that allow life to develop.\nQuestion: What is the fundamental difference between the weak and strong anthropic principles?", a: "The strong principle proposes the universe must allow life; the weak notes observational bias.", w: ["They are completely identical in their claims.", "The weak principle requires fine-tuning; the strong denies it.", "Both deny the existence of fine-tuning."], d: 8 },
-        { q: "Passage:\nThe concept of the 'tragedy of the commons' describes a situation where individuals, acting independently and rationally according to their own self-interest, behave contrary to the best interests of the whole group by depleting some common resource.\nQuestion: What causes the tragedy of the commons?", a: "Individuals acting in rational self-interest deplete shared resources.", w: ["Government overregulation of resources.", "A lack of technology to manage resources.", "Altruistic behavior by individuals."], d: 8 },
-        // 难度 9-10
-        { q: "Passage:\nThe Sapir-Whorf hypothesis proposes that the structure of a language affects its speakers' worldview. The strong version asserts that language determines thought entirely, while the weak version suggests it merely influences thought. Modern cognitive science largely supports the weak version.\nQuestion: How does modern cognitive science view the Sapir-Whorf hypothesis?", a: "It supports the weak version: language influences but does not fully determine thought.", w: ["It fully supports the strong version: language determines thought.", "It completely rejects any influence of language on thought.", "It proves that all languages result in identical worldviews."], d: 9 },
-        { q: "Passage:\nIn complex systems theory, the butterfly effect describes how small variations in the initial conditions of a dynamical system can produce large differences in the long-term outcome. This sensitivity means that long-term prediction is inherently impossible for systems like weather.\nQuestion: Why does the butterfly effect make long-term prediction impossible?", a: "Because exact measurement of initial conditions is impossible, and small errors amplify.", w: ["Because weather models are fundamentally flawed.", "Because the system eventually stabilizes.", "Because small changes always cancel each other out."], d: 9 },
-        { q: "Passage:\nThe Dunning-Kruger effect is a cognitive bias in which people with low ability at a task overestimate their ability. It is related to the metacognitive inability of the unskilled to recognize their ineptitude.\nQuestion: What is the core mechanism of the Dunning-Kruger effect?", a: "A metacognitive deficit where unskilled individuals fail to recognize their own incompetence.", w: ["A complete lack of confidence in highly skilled individuals.", "The tendency for experts to overestimate their abilities.", "A universal cognitive bias affecting everyone equally."], d: 10 },
-        { q: "Passage:\nThe theory of evolution by natural selection postulates that species change over time through the differential survival and reproduction of individuals. This process is driven by heritable variations that confer advantages in specific environments.\nQuestion: What is the fundamental driver of natural selection?", a: "Differential survival and reproduction of individuals.", w: ["The intentional adaptation of species to their environment.", "The spontaneous generation of new traits.", "The inheritance of acquired characteristics."], d: 10 }
+        // --- 难度 1-4：短文，非分栏 ---
+        { q: "Passage:\nTom has a dog named Max. Max is brown and loves to play fetch in the park.\nQuestion: What color is Max?", a: "Brown", w: ["Black", "White", "Gray"], d: 1, isLongPassage: false },
+        { q: "Passage:\nLily gets up at 6 a.m. every day. She goes running in the park for an hour. Her favorite sport is running.\nQuestion: What is Lily's favorite sport?", a: "Running", w: ["Swimming", "Basketball", "Soccer"], d: 1, isLongPassage: false },
+        { q: "Passage:\nThe sun rises in the east and sets in the west. This is a natural phenomenon caused by the rotation of the Earth.\nQuestion: From which direction does the sun rise?", a: "East", w: ["West", "South", "North"], d: 2, isLongPassage: false },
+        { q: "Passage:\nWater is essential for all known forms of life. It covers about 71% of the Earth's surface. Most of the water on Earth is in the oceans.\nQuestion: Where is most of Earth's water located?", a: "Oceans", w: ["Rivers", "Lakes", "Glaciers"], d: 2, isLongPassage: false },
+        { q: "Passage:\nPhotosynthesis is the process by which green plants use sunlight to synthesize foods from carbon dioxide and water. It generates oxygen as a byproduct.\nQuestion: What is the primary function of photosynthesis?", a: "To synthesize food using sunlight", w: ["To release carbon dioxide", "To consume oxygen", "To break down glucose"], d: 3, isLongPassage: false },
+        { q: "Passage:\nThe concept of 'cognitive dissonance' refers to the mental discomfort experienced by a person who holds two contradictory beliefs. To reduce this discomfort, individuals often change one of their beliefs to align with the other.\nQuestion: What is the main consequence of cognitive dissonance?", a: "Altering a belief to reduce discomfort", w: ["Increasing contradictory beliefs", "Ignoring mental discomfort", "A type of learning"], d: 3, isLongPassage: false },
+        { q: "Passage:\nIn a free market economy, prices are determined by the forces of supply and demand. When demand exceeds supply, prices tend to rise, which encourages producers to increase supply.\nQuestion: According to the passage, what happens when demand exceeds supply?", a: "Prices rise, encouraging more supply", w: ["Prices fall, reducing supply", "Prices remain constant", "Demand decreases automatically"], d: 4, isLongPassage: false },
+        { q: "Passage:\nThe Great Barrier Reef is the world's largest coral reef system. It is composed of over 2,900 individual reefs and 900 islands. It is located in the Coral Sea, off the coast of Queensland, Australia.\nQuestion: Where is the Great Barrier Reef located?", a: "Off the coast of Australia", w: ["In the Caribbean", "In the Pacific Ocean near Hawaii", "Off the coast of Florida"], d: 4, isLongPassage: false },
+        
+        // --- 难度 5-7：中长文，不分栏 ---
+        { q: "Passage:\nThe human brain is highly adaptable due to neuroplasticity, which allows it to reorganize itself by forming new neural connections throughout life. This is crucial for learning new skills and recovering from brain injuries.\nQuestion: Why is neuroplasticity important?", a: "It helps the brain adapt and recover", w: ["It prevents all brain injuries", "It stops brain growth", "It reduces brain function"], d: 5, isLongPassage: false },
+        { q: "Passage:\nThe proliferation of digital echo chambers has fundamentally altered the epistemological landscape of modern democracies. Algorithmic curation creates insulated realities where confirmation bias is an engineered feature. The result is an epistemic crisis where objective truth is subordinated to tribal identity.\nQuestion: What is the ultimate consequence of algorithmic echo chambers on democracy?", a: "They destroy the shared factual basis required for deliberation.", w: ["They increase healthy competition among factions.", "They eliminate confirmation bias through exposure.", "They foster a vibrant marketplace of ideas."], d: 6, isLongPassage: false },
+        { q: "Passage:\nThe EPR paradox argued that quantum mechanics was incomplete. Einstein derided entanglement as 'spooky action at a distance.' However, Bell's theorem later demonstrated that no local hidden-variable theory could reproduce the predictions of quantum mechanics, forcing physicists to abandon local realism.\nQuestion: What was the significance of Bell's theorem?", a: "It showed local hidden-variable theories are incompatible with quantum mechanics.", w: ["It proved special relativity was flawed.", "It confirmed faster-than-light communication.", "It validated the EPR paradox."], d: 6, isLongPassage: false },
+        { q: "Passage:\nThe Industrial Revolution marked a major turning point in history. Almost every aspect of daily life was influenced. Average income and population began to exhibit unprecedented sustained growth.\nQuestion: What was a major effect of the Industrial Revolution?", a: "Unprecedented sustained growth in income and population", w: ["A decline in population", "The end of agriculture", "A decrease in average income"], d: 7, isLongPassage: false },
+        { q: "Passage:\nThe economic history of the Industrial Revolution is often framed as a triumph of innovation, but this narrative obscures the profound social upheaval it entailed. The enclosure movement created a vast, exploitable labor force, entrenching systemic inequalities.\nQuestion: What is the author's main critique of the traditional narrative?", a: "It overlooks the severe social costs and systemic inequalities.", w: ["It overstates the role of technological innovation.", "It fails to acknowledge economic benefits.", "It exaggerates dehumanizing conditions."], d: 7, isLongPassage: false },
+
+        // --- 难度 8-10：超长学术文，必须开启左右分栏 ---
+        { q: "Passage:\nThe existentialist notion that 'existence precedes essence' is a radical departure from classical philosophy. For Sartre, humanity is condemned to be free; we are thrust into a meaningless universe and must forge our own meaning through authentic choices. To escape this responsibility through 'bad faith' is to deny one's own freedom, reducing oneself to a mere object. This fundamental freedom is inescapable, as even the refusal to choose constitutes a choice. Therefore, authenticity requires acknowledging this absolute responsibility.\n\nQuestion: What does Sartre mean by 'bad faith'?", a: "Denying inherent freedom and responsibility to avoid anguish.", w: ["Believing in a higher power that dictates destiny.", "Acting immorally against established societal norms.", "Rejecting the idea that life has any inherent meaning."], d: 8, isLongPassage: true },
+        { q: "Passage:\nThe anthropic principle in cosmology suggests that the universe's physical constants are fine-tuned to allow the emergence of life. The weak anthropic principle states that our observations are necessarily biased by our existence; we can only observe a universe capable of supporting observers. The strong version proposes that the universe must have properties that allow life to develop. However, critics argue that the strong version is teleological and unscientific, as it implies a purposeful design rather than random chance.\n\nQuestion: What is the fundamental difference between the weak and strong anthropic principles?", a: "The strong principle proposes the universe must allow life; the weak notes observational bias.", w: ["They are completely identical in their claims.", "The weak principle requires fine-tuning; the strong denies it.", "Both deny the existence of fine-tuning."], d: 8, isLongPassage: true },
+        { q: "Passage:\nThe concept of the 'tragedy of the commons' describes a situation where individuals, acting independently and rationally according to their own self-interest, behave contrary to the best interests of the whole group by depleting some common resource. This occurs because the costs of overuse are distributed among all users, while the benefits are concentrated on the individual. Without regulation or privatization, rational actors will inevitably exhaust the shared resource, leading to collective ruin.\n\nQuestion: What causes the tragedy of the commons?", a: "Individuals acting in rational self-interest deplete shared resources.", w: ["Government overregulation of resources.", "A lack of technology to manage resources.", "Altruistic behavior by individuals."], d: 8, isLongPassage: true },
+        { q: "Passage:\nThe Sapir-Whorf hypothesis proposes that the structure of a language affects its speakers' worldview or cognition. The strong version asserts that language determines thought entirely, creating inescapable cognitive boundaries. The weak version suggests it merely influences thought, shaping perception without fully constraining it. Modern cognitive science largely supports the weak version, acknowledging that linguistic categories can subtly guide attention and memory, but denying that they imprison the mind.\n\nQuestion: How does modern cognitive science view the Sapir-Whorf hypothesis?", a: "It supports the weak version: language influences but does not fully determine thought.", w: ["It fully supports the strong version: language determines thought.", "It completely rejects any influence of language on thought.", "It proves that all languages result in identical worldviews."], d: 9, isLongPassage: true },
+        { q: "Passage:\nIn complex systems theory, the butterfly effect describes how small variations in the initial conditions of a dynamical system can produce large differences in the long-term outcome. This sensitivity means that long-term prediction is inherently impossible for chaotic systems like weather, even with perfect models, due to the impossibility of measuring initial conditions with infinite precision. Any minute error in measurement will amplify exponentially over time.\n\nQuestion: Why does the butterfly effect make long-term prediction impossible?", a: "Because exact measurement of initial conditions is impossible, and small errors amplify.", w: ["Because weather models are fundamentally flawed.", "Because the system eventually stabilizes.", "Because small changes always cancel each other out."], d: 9, isLongPassage: true },
+        { q: "Passage:\nThe Dunning-Kruger effect is a cognitive bias in which people with low ability at a task overestimate their ability. It is related to the metacognitive inability of the unskilled to recognize their ineptitude. Conversely, highly skilled individuals may underestimate their relative competence, assuming that tasks which are easy for them are also easy for others. This dual burden of incompetence and unrecognized incompetence creates a profound distortion in self-assessment.\n\nQuestion: What is the core mechanism of the Dunning-Kruger effect?", a: "A metacognitive deficit where unskilled individuals fail to recognize their own incompetence.", w: ["A complete lack of confidence in highly skilled individuals.", "The tendency for experts to overestimate their abilities.", "A universal cognitive bias affecting everyone equally."], d: 10, isLongPassage: true },
+        { q: "Passage:\nThe theory of evolution by natural selection postulates that species change over time through the differential survival and reproduction of individuals. This process is driven by heritable variations that confer advantages in specific environments. Over generations, these advantageous traits become more common, leading to adaptation. The elegant simplicity of the mechanism belies its profound implications for the diversity and complexity of life on Earth.\n\nQuestion: What is the fundamental driver of natural selection?", a: "Differential survival and reproduction of individuals.", w: ["The intentional adaptation of species to their environment.", "The spontaneous generation of new traits.", "The inheritance of acquired characteristics."], d: 10, isLongPassage: true }
     ];
     addUniqueQuestions('Reading', readList);
 
@@ -239,7 +299,7 @@ function buildBank() {
         { q: "Catalyst effect?", a: "Lowers activation energy", w: ["Increases", "Changes equilibrium", "Consumed"], d: 10 }
     ];
     for (var d = 1; d <= 10; d++) {
-        for (var i = 0; i < 40; i++) {
+        for (var i = 0; i < 50; i++) {
             var t = sciTemplates[i % sciTemplates.length];
             var ctx = sciContexts[i % sciContexts.length];
             sciList.push({ q: ctx + t.q, a: t.a, w: t.w, d: t.d });
@@ -291,6 +351,13 @@ function loadNextQuestion() {
         btn.onclick = function() { handleAnswer(idx); };
         optionsContainer.appendChild(btn);
     });
+
+    var panel = document.getElementById('questionPanelContainer');
+    if (q.isLongPassage) {
+        panel.classList.add('split-view');
+    } else {
+        panel.classList.remove('split-view');
+    }
 
     document.getElementById('feedbackArea').textContent = '选择一个答案';
     document.getElementById('feedbackArea').className = 'feedback-area';
