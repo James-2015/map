@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>MAP 极限自适应测试 · 完美均衡版</title>
+<title>MAP 极限自适应测试 · 绝对反套路版</title>
 <style>
 *{box-sizing:border-box;font-family:'Segoe UI',sans-serif;margin:0;padding:0}
 body{background:linear-gradient(145deg,#1e2b3c,#0f1a26);min-height:100vh;display:flex;justify-content:center;align-items:center;padding:20px}
@@ -82,7 +82,7 @@ body{background:linear-gradient(145deg,#1e2b3c,#0f1a26);min-height:100vh;display
     <div class="test-header"><span class="subject-badge">MAP 挑战</span><span class="question-counter">选择科目</span></div>
     <div class="question-panel" style="text-align:center">
         <div style="font-size:2rem;font-weight:600;margin:20px 0 10px;color:#0b1a2b">🔥 极限自适应题库</div>
-        <div style="font-size:1rem;color:#3d5068;margin-bottom:20px">A/B/C/D 概率均等 · 长篇分栏 · 难度严格分级</div>
+        <div style="font-size:1rem;color:#3d5068;margin-bottom:20px">全科目长篇阅读 · 彻底打乱长度规律 · 真实学术题库</div>
         <div class="subject-selector">
             <button class="subject-btn" onclick="startQuiz('Math')">Math</button>
             <button class="subject-btn" onclick="startQuiz('Language Usage')">Language Usage</button>
@@ -121,7 +121,7 @@ var questionBank = {
     Science: []
 };
 
-// 核心洗牌算法
+// 严谨的洗牌
 function shuffleArray(arr) {
     var a = arr.slice();
     for (var i = a.length - 1; i > 0; i--) {
@@ -133,34 +133,31 @@ function shuffleArray(arr) {
     return a;
 }
 
-// 生成选项并确保正确答案定位绝对准确
+// 核心反套路算法：彻底打乱长度，并精确定位答案
 function createOptions(correctAns, baseWrongs, level) {
+    // 所有选项混在一起
     var allOpts = [correctAns].concat(baseWrongs);
     
-    // 迷惑项伪装（打乱长度规律）
-    var finalOpts = allOpts.map(function(opt) {
-        if (Math.random() > 0.5) {
-            if (level > 6) return opt + " (theoretical implications)";
-            return "The exact answer is: " + opt;
+    // 1. 给所有选项加上随机的烟雾弹修饰词，彻底打破长度规律
+    var modifiedOpts = allOpts.map(function(opt) {
+        var rand = Math.random();
+        if (level > 6) {
+            if (rand > 0.6) return "Theoretically, " + opt + " due to established paradigms.";
+            if (rand > 0.3) return opt + " (which is a primary consequence).";
+            return opt;
+        } else {
+            if (rand > 0.6) return "Answer is: " + opt;
+            return opt;
         }
-        return opt;
     });
 
-    // 洗牌
-    var shuffledOpts = shuffleArray(finalOpts);
+    // 2. 洗牌
+    var shuffledOpts = shuffleArray(modifiedOpts);
     
-    // 严谨定位：遍历洗牌后的数组，找到与变换后的正确项完全匹配的字符串
-    // 因为我们在上面可能给正确选项加上了前后缀，所以需要在洗牌后，通过字符串匹配找到它
-    // 这里最安全的做法是：先在 finalOpts 里找到被修饰过的正确答案，再在 shuffledOpts 里找它的索引
-    
-    var modifiedCorrect = finalOpts[0]; // 因为 allOpts[0] 是 correctAns
-    var actualIndex = -1;
-    for (var i = 0; i < shuffledOpts.length; i++) {
-        if (shuffledOpts[i] === modifiedCorrect) {
-            actualIndex = i;
-            break;
-        }
-    }
+    // 3. 极其严谨地找到正确答案的索引
+    // 正确的那个文本，在 modifiedOpts 里是索引 0（因为 allOpts[0] 是正确答案）
+    var correctText = modifiedOpts[0]; 
+    var actualIndex = shuffledOpts.indexOf(correctText);
 
     return {
         options: shuffledOpts,
@@ -248,22 +245,26 @@ function buildBank() {
     }
     addUniqueQuestions('Language Usage', langList);
 
-    // ================= Reading (长篇左右分栏) =================
+    // ================= Reading (拉长所有文本，分段排版) =================
     var readList = [
-        { q: "Passage:\nTom has a dog named Max. Max is brown and loves to play fetch in the park.\nQuestion: What color is Max?", a: "Brown", w: ["Black", "White", "Gray"], d: 1, isLongPassage: false },
-        { q: "Passage:\nLily gets up at 6 a.m. every day. She goes running in the park for an hour. Her favorite sport is running.\nQuestion: What is Lily's favorite sport?", a: "Running", w: ["Swimming", "Basketball", "Soccer"], d: 1, isLongPassage: false },
-        { q: "Passage:\nThe sun rises in the east and sets in the west. This is a natural phenomenon caused by the rotation of the Earth.\nQuestion: From which direction does the sun rise?", a: "East", w: ["West", "South", "North"], d: 2, isLongPassage: false },
-        { q: "Passage:\nWater is essential for all known forms of life. It covers about 71% of the Earth's surface. Most of the water on Earth is in the oceans.\nQuestion: Where is most of Earth's water located?", a: "Oceans", w: ["Rivers", "Lakes", "Glaciers"], d: 2, isLongPassage: false },
-        { q: "Passage:\nPhotosynthesis is the process by which green plants use sunlight to synthesize foods from carbon dioxide and water. It generates oxygen as a byproduct.\nQuestion: What is the primary function of photosynthesis?", a: "To synthesize food using sunlight", w: ["To release carbon dioxide", "To consume oxygen", "To break down glucose"], d: 3, isLongPassage: false },
-        { q: "Passage:\nThe concept of 'cognitive dissonance' refers to the mental discomfort experienced by a person who holds two contradictory beliefs. To reduce this discomfort, individuals often change one of their beliefs to align with the other.\nQuestion: What is the main consequence of cognitive dissonance?", a: "Altering a belief to reduce discomfort", w: ["Increasing contradictory beliefs", "Ignoring mental discomfort", "A type of learning"], d: 3, isLongPassage: false },
-        { q: "Passage:\nIn a free market economy, prices are determined by the forces of supply and demand. When demand exceeds supply, prices tend to rise, which encourages producers to increase supply.\nQuestion: According to the passage, what happens when demand exceeds supply?", a: "Prices rise, encouraging more supply", w: ["Prices fall, reducing supply", "Prices remain constant", "Demand decreases automatically"], d: 4, isLongPassage: false },
-        { q: "Passage:\nThe Great Barrier Reef is the world's largest coral reef system. It is composed of over 2,900 individual reefs and 900 islands. It is located in the Coral Sea, off the coast of Queensland, Australia.\nQuestion: Where is the Great Barrier Reef located?", a: "Off the coast of Australia", w: ["In the Caribbean", "In the Pacific Ocean near Hawaii", "Off the coast of Florida"], d: 4, isLongPassage: false },
-        { q: "Passage:\nThe human brain is highly adaptable due to neuroplasticity, which allows it to reorganize itself by forming new neural connections throughout life. This is crucial for learning new skills and recovering from brain injuries.\nQuestion: Why is neuroplasticity important?", a: "It helps the brain adapt and recover", w: ["It prevents all brain injuries", "It stops brain growth", "It reduces brain function"], d: 5, isLongPassage: false },
-        { q: "Passage:\nThe proliferation of digital echo chambers has fundamentally altered the epistemological landscape of modern democracies. Algorithmic curation creates insulated realities where confirmation bias is an engineered feature. The result is an epistemic crisis where objective truth is subordinated to tribal identity.\nQuestion: What is the ultimate consequence of algorithmic echo chambers on democracy?", a: "They destroy the shared factual basis required for deliberation.", w: ["They increase healthy competition among factions.", "They eliminate confirmation bias through exposure.", "They foster a vibrant marketplace of ideas."], d: 6, isLongPassage: false },
-        { q: "Passage:\nThe EPR paradox argued that quantum mechanics was incomplete. Einstein derided entanglement as 'spooky action at a distance.' However, Bell's theorem later demonstrated that no local hidden-variable theory could reproduce the predictions of quantum mechanics, forcing physicists to abandon local realism.\nQuestion: What was the significance of Bell's theorem?", a: "It showed local hidden-variable theories are incompatible with quantum mechanics.", w: ["It proved special relativity was flawed.", "It confirmed faster-than-light communication.", "It validated the EPR paradox."], d: 6, isLongPassage: false },
-        { q: "Passage:\nThe Industrial Revolution marked a major turning point in history. Almost every aspect of daily life was influenced. Average income and population began to exhibit unprecedented sustained growth.\nQuestion: What was a major effect of the Industrial Revolution?", a: "Unprecedented sustained growth in income and population", w: ["A decline in population", "The end of agriculture", "A decrease in average income"], d: 7, isLongPassage: false },
-        { q: "Passage:\nThe economic history of the Industrial Revolution is often framed as a triumph of innovation, but this narrative obscures the profound social upheaval it entailed. The enclosure movement created a vast, exploitable labor force, entrenching systemic inequalities.\nQuestion: What is the author's main critique of the traditional narrative?", a: "It overlooks the severe social costs and systemic inequalities.", w: ["It overstates the role of technological innovation.", "It fails to acknowledge economic benefits.", "It exaggerates dehumanizing conditions."], d: 7, isLongPassage: false },
-        { q: "Passage:\nThe existentialist notion that 'existence precedes essence' is a radical departure from classical philosophy. For Sartre, humanity is condemned to be free; we are thrust into a meaningless universe and must forge our own meaning through authentic choices. To escape this responsibility through 'bad faith' is to deny one's own freedom, reducing oneself to a mere object. This fundamental freedom is inescapable, as even the refusal to choose constitutes a choice. Therefore, authenticity requires acknowledging this absolute responsibility.\n\nQuestion: What does Sartre mean by 'bad faith'?", a: "Denying inherent freedom and responsibility to avoid anguish.", w: ["Believing in a higher power that dictates destiny.", "Acting immorally against established societal norms.", "Rejecting the idea that life has any inherent meaning."], d: 8, isLongPassage: true },
+        // 难度 1-2
+        { q: "Passage:\nTom has a dog named Max. Max is brown and loves to play fetch in the park. Every morning, Tom and Max walk to the park near their house. Max is very energetic and always runs ahead. He is also a very loyal companion to Tom, and they have been inseparable since Max was a puppy. Max enjoys chasing squirrels and playing with other dogs.\n\nQuestion: What color is Max?", a: "Brown", w: ["Black", "White", "Gray"], d: 1, isLongPassage: false },
+        { q: "Passage:\nLily gets up at 6 a.m. every day. She goes running in the park for an hour before starting her day. Her favorite sport is running because it helps her clear her mind and stay healthy. She also enjoys watching basketball on weekends, but she prefers to run herself rather than sit on the sidelines. Running has been a part of her routine for five years now.\n\nQuestion: What is Lily's favorite sport?", a: "Running", w: ["Swimming", "Basketball", "Soccer"], d: 1, isLongPassage: false },
+        { q: "Passage:\nThe sun rises in the east and sets in the west. This is a natural phenomenon caused by the rotation of the Earth. When the sun is high in the sky, it is noon. The Earth's rotation on its axis takes approximately 24 hours, which gives us day and night. This consistent cycle has allowed humans to develop timekeeping systems for thousands of years.\n\nQuestion: From which direction does the sun rise?", a: "East", w: ["West", "South", "North"], d: 2, isLongPassage: false },
+        { q: "Passage:\nWater is essential for all known forms of life. It covers about 71% of the Earth's surface. Most of the water on Earth is in the oceans, which are saltwater. Only a small fraction is freshwater, and much of that is frozen in glaciers. Despite its importance, access to clean drinking water remains a challenge in many parts of the world.\n\nQuestion: Where is most of Earth's water located?", a: "Oceans", w: ["Rivers", "Lakes", "Glaciers"], d: 2, isLongPassage: false },
+        // 难度 3-4
+        { q: "Passage:\nPhotosynthesis is the process by which green plants use sunlight to synthesize foods from carbon dioxide and water. It generates oxygen as a byproduct, which is essential for animal life. This process occurs primarily in the leaves of plants, specifically within chloroplasts containing chlorophyll. Through photosynthesis, plants convert solar energy into chemical energy that fuels their growth and reproduction.\n\nQuestion: What is the primary function of photosynthesis?", a: "To synthesize food using sunlight", w: ["To release carbon dioxide", "To consume oxygen", "To break down glucose"], d: 3, isLongPassage: false },
+        { q: "Passage:\nThe concept of 'cognitive dissonance' refers to the mental discomfort experienced by a person who holds two contradictory beliefs. To reduce this discomfort, individuals often change one of their beliefs to align with the other, or they avoid situations that increase the dissonance. This theory has been widely applied in psychology and marketing to explain how people rationalize their decisions.\n\nQuestion: What is the main consequence of cognitive dissonance?", a: "Altering a belief to reduce discomfort", w: ["Increasing contradictory beliefs", "Ignoring mental discomfort", "A type of learning"], d: 3, isLongPassage: false },
+        { q: "Passage:\nIn a free market economy, prices are determined by the forces of supply and demand. When demand exceeds supply, prices tend to rise, which encourages producers to increase supply. Conversely, when supply exceeds demand, prices fall, which encourages consumers to buy more. This mechanism is often described as the 'invisible hand' guiding the market toward equilibrium.\n\nQuestion: According to the passage, what happens when demand exceeds supply?", a: "Prices rise, encouraging more supply", w: ["Prices fall, reducing supply", "Prices remain constant", "Demand decreases automatically"], d: 4, isLongPassage: false },
+        { q: "Passage:\nThe Great Barrier Reef is the world's largest coral reef system. It is composed of over 2,900 individual reefs and 900 islands. It is located in the Coral Sea, off the coast of Queensland, Australia. It is a fragile ecosystem that supports thousands of marine species. Unfortunately, it faces threats from climate change and ocean acidification.\n\nQuestion: Where is the Great Barrier Reef located?", a: "Off the coast of Australia", w: ["In the Caribbean", "In the Pacific Ocean near Hawaii", "Off the coast of Florida"], d: 4, isLongPassage: false },
+        // 难度 5-7
+        { q: "Passage:\nThe human brain is highly adaptable due to neuroplasticity, which allows it to reorganize itself by forming new neural connections throughout life. This is crucial for learning new skills and recovering from brain injuries. Research shows that even in old age, the brain can adapt. Contrary to the long-held belief that the brain stops developing after childhood, this discovery has revolutionized our understanding of the human mind.\n\nQuestion: Why is neuroplasticity important?", a: "It helps the brain adapt and recover", w: ["It prevents all brain injuries", "It stops brain growth", "It reduces brain function"], d: 5, isLongPassage: false },
+        { q: "Passage:\nThe proliferation of digital echo chambers has fundamentally altered the epistemological landscape of modern democracies. Rather than fostering a vibrant marketplace of ideas, algorithmic curation creates insulated realities where confirmation bias is not merely a psychological tendency but an engineered feature. The result is an epistemic crisis where objective truth is subordinated to tribal identity. This fragmentation threatens the shared factual basis necessary for democratic deliberation.\n\nQuestion: What is the ultimate consequence of algorithmic echo chambers on democracy?", a: "They destroy the shared factual basis required for deliberation.", w: ["They increase healthy competition among factions.", "They eliminate confirmation bias through exposure.", "They foster a vibrant marketplace of ideas."], d: 6, isLongPassage: false },
+        { q: "Passage:\nThe EPR paradox argued that quantum mechanics was incomplete. Einstein derided entanglement as 'spooky action at a distance.' However, Bell's theorem later demonstrated that no local hidden-variable theory could reproduce the predictions of quantum mechanics, forcing physicists to abandon local realism. This profound shift has paved the way for quantum information science.\n\nQuestion: What was the significance of Bell's theorem?", a: "It showed local hidden-variable theories are incompatible with quantum mechanics.", w: ["It proved special relativity was flawed.", "It confirmed faster-than-light communication.", "It validated the EPR paradox."], d: 6, isLongPassage: false },
+        { q: "Passage:\nThe Industrial Revolution marked a major turning point in history. Almost every aspect of daily life was influenced. Average income and population began to exhibit unprecedented sustained growth. The transition from hand production to machines, new chemical manufacturing, and iron production processes changed the world forever.\n\nQuestion: What was a major effect of the Industrial Revolution?", a: "Unprecedented sustained growth in income and population", w: ["A decline in population", "The end of agriculture", "A decrease in average income"], d: 7, isLongPassage: false },
+        { q: "Passage:\nThe economic history of the Industrial Revolution is often framed as a triumph of innovation, but this narrative obscures the profound social upheaval it entailed. The enclosure movement and rural-to-urban migration created a vast, exploitable labor force. While the factory system generated unprecedented wealth, it entrenched systemic inequalities and subjected workers to dehumanizing conditions.\n\nQuestion: What is the author's main critique of the traditional narrative?", a: "It overlooks the severe social costs and systemic inequalities.", w: ["It overstates the role of technological innovation.", "It fails to acknowledge economic benefits.", "It exaggerates dehumanizing conditions."], d: 7, isLongPassage: false },
+        // 难度 8-10
+        { q: "Passage:\nThe existentialist notion that 'existence precedes essence' is a radical departure from classical philosophy. For Sartre, humanity is condemned to be free; we are thrust into a meaningless universe and must forge our own meaning through authentic choices. This freedom, however, is accompanied by profound anguish, as we bear the total responsibility for our actions and, by extension, for the world we create. To escape this responsibility through 'bad faith' (mauvaise foi) is to deny one's own freedom, reducing oneself to a mere object. This fundamental freedom is inescapable, as even the refusal to choose constitutes a choice. Therefore, authenticity requires acknowledging this absolute responsibility, embracing the anguish, and living with integrity.\n\nQuestion: What does Sartre mean by 'bad faith'?", a: "Denying inherent freedom and responsibility to avoid anguish.", w: ["Believing in a higher power that dictates destiny.", "Acting immorally against established societal norms.", "Rejecting the idea that life has any inherent meaning."], d: 8, isLongPassage: true },
         { q: "Passage:\nThe anthropic principle in cosmology suggests that the universe's physical constants are fine-tuned to allow the emergence of life. The weak anthropic principle states that our observations are necessarily biased by our existence; we can only observe a universe capable of supporting observers. The strong version proposes that the universe must have properties that allow life to develop. However, critics argue that the strong version is teleological and unscientific, as it implies a purposeful design rather than random chance.\n\nQuestion: What is the fundamental difference between the weak and strong anthropic principles?", a: "The strong principle proposes the universe must allow life; the weak notes observational bias.", w: ["They are completely identical in their claims.", "The weak principle requires fine-tuning; the strong denies it.", "Both deny the existence of fine-tuning."], d: 8, isLongPassage: true },
         { q: "Passage:\nThe concept of the 'tragedy of the commons' describes a situation where individuals, acting independently and rationally according to their own self-interest, behave contrary to the best interests of the whole group by depleting some common resource. This occurs because the costs of overuse are distributed among all users, while the benefits are concentrated on the individual. Without regulation or privatization, rational actors will inevitably exhaust the shared resource, leading to collective ruin.\n\nQuestion: What causes the tragedy of the commons?", a: "Individuals acting in rational self-interest deplete shared resources.", w: ["Government overregulation of resources.", "A lack of technology to manage resources.", "Altruistic behavior by individuals."], d: 8, isLongPassage: true },
         { q: "Passage:\nThe Sapir-Whorf hypothesis proposes that the structure of a language affects its speakers' worldview or cognition. The strong version asserts that language determines thought entirely, creating inescapable cognitive boundaries. The weak version suggests it merely influences thought, shaping perception without fully constraining it. Modern cognitive science largely supports the weak version, acknowledging that linguistic categories can subtly guide attention and memory, but denying that they imprison the mind.\n\nQuestion: How does modern cognitive science view the Sapir-Whorf hypothesis?", a: "It supports the weak version: language influences but does not fully determine thought.", w: ["It fully supports the strong version: language determines thought.", "It completely rejects any influence of language on thought.", "It proves that all languages result in identical worldviews."], d: 9, isLongPassage: true },
