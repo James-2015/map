@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>MAP 极限自适应测试 · 终极全量版</title>
+<title>MAP 极限自适应测试 · 终极全量版（修复重复）</title>
 <style>
 *{box-sizing:border-box;font-family:'Segoe UI',sans-serif;margin:0;padding:0}
 body{background:linear-gradient(145deg,#1e2b3c,#0f1a26);min-height:100vh;display:flex;justify-content:center;align-items:center;padding:20px}
@@ -13,40 +13,12 @@ body{background:linear-gradient(145deg,#1e2b3c,#0f1a26);min-height:100vh;display
 .test-header{display:flex;justify-content:space-between;align-items:center;padding:24px 32px 12px;border-bottom:2px solid #eef2f7;flex-wrap:wrap;gap:10px}
 .subject-badge{background:#1e2b3c;color:#fff;font-weight:600;padding:8px 20px;border-radius:40px}
 .question-counter,.difficulty-indicator{color:#4a5a6e;font-weight:600;background:#f0f4fa;padding:8px 20px;border-radius:40px}
-
-/* 默认全屏（适合短题） */
 .question-panel{padding:32px 40px 24px}
 .question-text{font-size:1.15rem;font-weight:500;color:#0b1a2b;line-height:1.7;margin-bottom:30px;white-space:pre-wrap;max-height:380px;overflow-y:auto;padding-right:10px}
 .options-grid{display:flex;flex-direction:column;gap:14px;margin-bottom:30px}
-
-/* 左右分栏（适合长阅读题） */
-.question-panel.split-view {
-    display: flex;
-    gap: 20px;
-    max-height: 650px;
-}
-.question-panel.split-view .question-text {
-    flex: 1.2;
-    font-size:1rem;
-    line-height:1.6;
-    max-height: 600px;
-    padding-right: 15px;
-    border-right: 2px solid #eef2f7;
-    white-space: pre-wrap;
-    overflow-y: auto;
-    margin-bottom: 0;
-}
-.question-panel.split-view .options-grid {
-    flex: 1;
-    display: flex;
-    flex-direction: column;
-    justify-content: flex-start;
-    margin-bottom: 0;
-    max-height: 600px;
-    overflow-y: auto;
-    padding-left: 5px;
-}
-
+.question-panel.split-view{display:flex;gap:20px;max-height:650px}
+.question-panel.split-view .question-text{flex:1.2;font-size:1rem;line-height:1.6;max-height:600px;padding-right:15px;border-right:2px solid #eef2f7;white-space:pre-wrap;overflow-y:auto;margin-bottom:0}
+.question-panel.split-view .options-grid{flex:1;display:flex;flex-direction:column;justify-content:flex-start;margin-bottom:0;max-height:600px;overflow-y:auto;padding-left:5px}
 .option-btn{background:#f9fcff;border:2px solid #d0ddea;border-radius:20px;padding:18px 28px;font-size:1rem;font-weight:500;color:#1a2c3f;text-align:left;cursor:pointer;transition:.15s;display:flex;align-items:center;gap:18px}
 .option-btn:hover:not(:disabled){background:#e7f0fd;border-color:#2c7be5;transform:translateY(-2px)}
 .option-btn.correct{background:#d7f0e0;border-color:#1e8e5e;color:#0c4a2e}
@@ -114,34 +86,28 @@ body{background:linear-gradient(145deg,#1e2b3c,#0f1a26);min-height:100vh;display
 </div>
 
 <script>
-var questionBank = {
-    Math: [],
-    'Language Usage': [],
-    Reading: [],
-    Science: []
-};
+var questionBank = { Math: [], 'Language Usage': [], Reading: [], Science: [] };
 
 function shuffleArray(arr) {
     var a = arr.slice();
     for (var i = a.length - 1; i > 0; i--) {
         var j = Math.floor(Math.random() * (i + 1));
-        var temp = a[i];
-        a[i] = a[j];
-        a[j] = temp;
+        var t = a[i]; a[i] = a[j]; a[j] = t;
     }
     return a;
 }
 
-// 核心反套路算法：精准定位答案，彻底打破选项长度规律
-function createOptions(correctAns, baseWrongs, level) {
-    var allOpts = [correctAns].concat(baseWrongs);
+function createOptions(correctAns, baseWrongs) {
+    // 去重错误选项
+    var seen = new Set();
+    var wrongs = baseWrongs.filter(function(w){ if(seen.has(w))return false; seen.add(w); return true; });
+    // 不足 3 个时补随机数字/文本
+    while (wrongs.length < 3) {
+        wrongs.push("None of the above " + Math.floor(Math.random()*1000));
+    }
+    var allOpts = [correctAns].concat(wrongs.slice(0,3));
     var shuffledOpts = shuffleArray(allOpts);
-    var actualIndex = shuffledOpts.indexOf(correctAns);
-
-    return {
-        options: shuffledOpts,
-        answerIndex: actualIndex
-    };
+    return { options: shuffledOpts, answerIndex: shuffledOpts.indexOf(correctAns) };
 }
 
 function addUniqueQuestions(subject, list) {
@@ -150,129 +116,230 @@ function addUniqueQuestions(subject, list) {
         var key = t.q + "|" + t.a;
         if (!seen.has(key)) {
             seen.add(key);
-            var op = createOptions(t.a, t.w, t.d);
+            var op = createOptions(t.a, t.w);
             questionBank[subject].push({
                 subject: subject,
                 question: t.q,
                 options: op.options,
                 answerIndex: op.answerIndex,
                 difficulty: t.d,
-                isLongPassage: t.isLongPassage || false
+                isLongPassage: t.isLongPassage || false,
+                tag: t.tag || ('d' + t.d)
             });
         }
     });
 }
 
+// ============ 随机工具 ============
+function rnd(min, max) { return Math.floor(Math.random() * (max - min + 1)) + min; }
+function pick(arr) { return arr[Math.floor(Math.random() * arr.length)]; }
+
 function buildBank() {
-    // ================= Math (全量生成海量题) =================
+    // ================= Math：随机生成，题型多样 =================
     var mathList = [];
+    var mathTags = ['add','sub','mul','div','eq','area','deriv','integ','limit','det'];
     for (var d = 1; d <= 10; d++) {
-        for (var i = 0; i < 50; i++) {
-            var a = (d * 15 + i * 7 + 3), b = (d * 11 + i * 5 + 7);
-            if (d <= 2) {
-                mathList.push({ q: "Calculate: " + a + " + " + b + " = ?", a: "" + (a+b), w: [""+(a+b+2), ""+(a+b-3), ""+(a+b+5)], d: d });
-                mathList.push({ q: "Calculate: " + (a*3) + " - " + b + " = ?", a: "" + (a*3-b), w: [""+(a*3-b+1), ""+(a*3-b-2), ""+(a*3-b+3)], d: d });
-            } else if (d <= 4) {
-                mathList.push({ q: "Solve for x: " + a + "x - " + b + " = " + (a*4 - b) + "", a: "4", w: ["5", "6", "3"], d: d });
-                mathList.push({ q: "Area of rectangle width " + a + " length " + b + "?", a: "" + (a*b), w: [""+(a+b), ""+(2*(a+b)), ""+(a*b+5)], d: d });
-            } else if (d <= 6) {
-                mathList.push({ q: "Derivative of " + a + "x^2 + " + b + "x?", a: "" + (2*a) + "x + " + b, w: [""+a+"x + "+b, ""+2*a+"x", ""+a+"x^2 + "+b], d: d });
-                mathList.push({ q: "Limit as x->0 of sin(" + a + "x)/(" + b + "x)?", a: "" + (a/b), w: [""+(b/a), "1", "0"], d: d });
-            } else if (d <= 8) {
-                mathList.push({ q: "Integral of " + a + "x dx?", a: "" + (a/2) + "x^2 + C", w: [""+a+"x^2 + C", ""+(a/2)+"x + C", ""+a+"x + C"], d: d });
-                mathList.push({ q: "Determinant of [[" + a + ", " + b + "], [" + b + ", " + a + "]]?", a: "" + (a*a - b*b), w: [""+(a*a + b*b), ""+(a*b), "0"], d: d });
+        for (var i = 0; i < 60; i++) {
+            var tag = mathTags[i % mathTags.length];
+            if (tag === 'add') {
+                var a = rnd(5*d, 20*d), b = rnd(5*d, 20*d);
+                mathList.push({ q: "Calculate: " + a + " + " + b + " = ?", a: ""+(a+b), w: [""+(a+b+rnd(1,9)), ""+(a+b-rnd(1,9)), ""+(a+b+rnd(10,19))], d: d, tag: 'math-add' });
+            } else if (tag === 'sub') {
+                var a = rnd(10*d, 40*d), b = rnd(1, 10*d);
+                mathList.push({ q: "Calculate: " + a + " - " + b + " = ?", a: ""+(a-b), w: [""+(a-b+rnd(1,5)), ""+(a-b-rnd(1,5)), ""+(a+b)], d: d, tag: 'math-sub' });
+            } else if (tag === 'mul') {
+                var a = rnd(2, 12+d), b = rnd(2, 12+d);
+                mathList.push({ q: "Calculate: " + a + " × " + b + " = ?", a: ""+(a*b), w: [""+(a*b+a), ""+(a*b-b), ""+(a+b)], d: d, tag: 'math-mul' });
+            } else if (tag === 'div') {
+                var b = rnd(2, 12); var qq = rnd(2, 12+d); var a = b*qq;
+                mathList.push({ q: "Calculate: " + a + " ÷ " + b + " = ?", a: ""+qq, w: [""+(qq+1), ""+(qq-1), ""+(qq+2)], d: d, tag: 'math-div' });
+            } else if (tag === 'eq') {
+                var x = rnd(2, 9); var a = rnd(2, 8); var b = rnd(1, 20);
+                mathList.push({ q: "Solve for x: " + a + "x + " + b + " = " + (a*x+b), a: ""+x, w: [""+(x+1), ""+(x-1), ""+(x+2)], d: d, tag: 'math-eq' });
+            } else if (tag === 'area') {
+                var w = rnd(3, 15), h = rnd(3, 15);
+                mathList.push({ q: "Area of rectangle width " + w + ", length " + h + "?", a: ""+(w*h), w: [""+(w+h), ""+(2*(w+h)), ""+(w*h+5)], d: d, tag: 'math-area' });
+            } else if (tag === 'deriv') {
+                var a = rnd(2, 9), b = rnd(1, 9);
+                mathList.push({ q: "Derivative of " + a + "x² + " + b + "x?", a: "" + (2*a) + "x + " + b, w: [""+a+"x + "+b, ""+(2*a)+"x", ""+a+"x² + "+b], d: d, tag: 'math-deriv' });
+            } else if (tag === 'integ') {
+                var a = rnd(2, 10);
+                mathList.push({ q: "∫ " + a + "x dx = ?", a: "" + (a/2) + "x² + C", w: [""+a+"x² + C", ""+(a/2)+"x + C", ""+a+"x + C"], d: d, tag: 'math-integ' });
+            } else if (tag === 'limit') {
+                var a = rnd(1, 6), b = rnd(1, 6);
+                mathList.push({ q: "lim(x→0) sin(" + a + "x)/(" + b + "x) = ?", a: "" + (a/b), w: [""+(b/a), "1", "0"], d: d, tag: 'math-limit' });
             } else {
-                mathList.push({ q: "Integral from 0 to ∞ of e^(-" + a + "x) dx?", a: "1/" + a, w: ["" + a, "1/" + (a*a), "0"], d: d });
-                mathList.push({ q: "Euler characteristic of genus " + a + " surface?", a: "" + (2-2*a), w: [""+(2*a-2), ""+(2*a), ""+(-2*a)], d: d });
+                var a = rnd(2, 6);
+                mathList.push({ q: "Determinant of [[" + a + ", 1], [1, " + a + "]] = ?", a: "" + (a*a - 1), w: [""+(a*a + 1), ""+(a), "0"], d: d, tag: 'math-det' });
             }
         }
     }
     addUniqueQuestions('Math', mathList);
 
-    // ================= Language Usage (全量生成) =================
+    // ================= Language Usage：参数化模板 =================
     var langList = [];
-    var contexts = ["[Literature] ", "[Formal] ", "[Everyday] ", "[Academic] ", "[Business] ", "[Journalism] ", "[Legal] ", "[Scientific] ", "[Historical] ", "[Philosophical] "];
+    var ctxs = ["[Literature] ","[Formal] ","[Everyday] ","[Academic] ","[Business] ","[Journalism] ","[Legal] ","[Scientific] ","[Historical] ","[Philosophical] "];
     for (var d = 1; d <= 10; d++) {
-        for (var i = 0; i < 50; i++) {
-            var ctx = contexts[i % contexts.length];
+        for (var i = 0; i < 40; i++) {
+            var ctx = ctxs[i % ctxs.length];
+            var tag;
             if (d <= 2) {
-                langList.push({ q: ctx + "Correct pronoun: ___ are playing.", a: "They", w: ["Them", "Their", "There"], d: d });
-                langList.push({ q: ctx + "Past tense of 'run'?", a: "Ran", w: ["Runned", "Running", "Runs"], d: d });
+                tag = ['lang-pronoun','lang-tense'][i%2];
+                if (tag === 'lang-pronoun') {
+                    var s = pick(['They','We','You','He','She']);
+                    var verb = pick(['are','were','have been','will be']);
+                    langList.push({ q: ctx + "Correct subject pronoun: ___ " + verb + " ready.", a: s, w: [pick(['Them','Their','There','They\'re']), pick(['Him','His','He\'s']), pick(['Us','Our','We\'re'])], d: d, tag: tag });
+                } else {
+                    var base = pick(['run','walk','eat','write','swim','go','see']);
+                    var past = {run:'ran',walk:'walked',eat:'ate',write:'wrote',swim:'swam',go:'went',see:'saw'}[base];
+                    langList.push({ q: ctx + "Past tense of '" + base + "'?", a: past, w: [base+'ed', base+'ing', base+'s'], d: d, tag: tag });
+                }
             } else if (d <= 4) {
-                langList.push({ q: ctx + "Find error: 'Neither of the girls were ready.'", a: "were", w: ["Neither", "of", "ready"], d: d });
-                langList.push({ q: ctx + "Which uses colon correctly?", a: "He had one goal: to win.", w: ["He had: one goal.", "He had one goal; to win.", "He had one goal, to: win."], d: d });
+                tag = ['lang-error','lang-colon'][i%2];
+                if (tag === 'lang-error') {
+                    langList.push({ q: ctx + "Find the error: 'Neither of the girls were ready.'", a: "were", w: ["Neither","girls","ready"], d: d, tag: tag });
+                } else {
+                    langList.push({ q: ctx + "Which uses a colon correctly?", a: "He had one goal: to win.", w: ["He had: one goal.","He had one goal; to win.","He had one goal, to: win."], d: d, tag: tag });
+                }
             } else if (d <= 6) {
-                langList.push({ q: ctx + "Fix dangling modifier: 'Walking down the street, the trees were beautiful.'", a: "Walking down the street, I saw beautiful trees.", w: ["The trees were beautiful walking down the street.", "Walking down the street, the trees were.", "The street had beautiful trees walking."], d: d });
-                langList.push({ q: ctx + "Clause type: 'Whoever finishes first will win.'", a: "Noun clause", w: ["Adjective", "Adverb", "Independent"], d: d });
+                tag = ['lang-modifier','lang-clause'][i%2];
+                if (tag === 'lang-modifier') {
+                    langList.push({ q: ctx + "Fix the dangling modifier: 'Walking down the street, the trees were beautiful.'", a: "Walking down the street, I saw beautiful trees.", w: ["The trees were beautiful walking down the street.","Walking down the street, the trees were.","The street had beautiful trees walking."], d: d, tag: tag });
+                } else {
+                    langList.push({ q: ctx + "Clause type: 'Whoever finishes first will win.'", a: "Noun clause", w: ["Adjective clause","Adverb clause","Independent clause"], d: d, tag: tag });
+                }
             } else if (d <= 8) {
-                langList.push({ q: ctx + "Logical fallacy: 'Either you support this or you are unpatriotic.'", a: "False dilemma", w: ["Ad hominem", "Straw man", "Slippery slope"], d: d });
-                langList.push({ q: ctx + "Inversion type: 'Seldom have I seen such courage.'", a: "Negative inversion", w: ["Locative", "Conditional", "Comparative"], d: d });
+                tag = ['lang-fallacy','lang-inversion'][i%2];
+                if (tag === 'lang-fallacy') {
+                    langList.push({ q: ctx + "Logical fallacy: 'Either you support this or you are unpatriotic.'", a: "False dilemma", w: ["Ad hominem","Straw man","Slippery slope"], d: d, tag: tag });
+                } else {
+                    langList.push({ q: ctx + "Inversion type: 'Seldom have I seen such courage.'", a: "Negative inversion", w: ["Locative inversion","Conditional inversion","Comparative inversion"], d: d, tag: tag });
+                }
             } else {
-                langList.push({ q: ctx + "Meaning of 'to gild the lily'?", a: "Unnecessarily embellish", w: ["To ruin a good thing", "To hide the truth", "To praise excessively"], d: d });
-                langList.push({ q: ctx + "Syntax type: 'Hardly had he arrived when the storm broke.'", a: "Negative inversion", w: ["Locative", "Conditional", "Subject-verb"], d: d });
+                tag = ['lang-idiom','lang-syntax'][i%2];
+                if (tag === 'lang-idiom') {
+                    langList.push({ q: ctx + "Meaning of 'to gild the lily'?", a: "Unnecessarily embellish", w: ["To ruin a good thing","To hide the truth","To praise excessively"], d: d, tag: tag });
+                } else {
+                    langList.push({ q: ctx + "Syntax type: 'Hardly had he arrived when the storm broke.'", a: "Negative inversion", w: ["Locative inversion","Conditional inversion","Subject-verb inversion"], d: d, tag: tag });
+                }
             }
         }
     }
     addUniqueQuestions('Language Usage', langList);
 
-    // ================= Reading (完美字数阶梯，全部手工定制) =================
-    // 字数：100 -> 200 -> 250 -> 300 -> 350 -> 400 -> 500 -> 600 -> 700 -> 800
-    var readList = [
-        // 难度 1: ~100 词
-        { q: "Passage:\nTom has a dog named Max. Max is brown and loves to play fetch in the park. Every morning, Tom and Max walk to the park near their house. Max is very energetic and always runs ahead. He is also a very loyal companion to Tom, and they have been inseparable since Max was a puppy. Max enjoys chasing squirrels and playing with other dogs. Tom often throws a tennis ball for Max to fetch, and Max never tires of this game. After their morning walk, they return home where Max takes a long nap.\n\nQuestion: What color is Max?", a: "Brown", w: ["Black", "White", "Gray"], d: 1, isLongPassage: false },
-        // 难度 2: ~200 词
-        { q: "Passage:\nThe sun rises in the east and sets in the west. This is a natural phenomenon caused by the rotation of the Earth. When the sun is high in the sky, it is noon. The Earth's rotation on its axis takes approximately 24 hours, which gives us day and night. This consistent cycle has allowed humans to develop timekeeping systems for thousands of years. Ancient civilizations built monuments aligned with the sun's path, and farmers have relied on the sun's position to plan their planting and harvesting seasons. The sun's apparent movement across the sky is a fundamental part of life on Earth, influencing everything from our sleep patterns to the migration of animals. Without this steady rhythm, life as we know it would not exist.\n\nQuestion: From which direction does the sun rise?", a: "East", w: ["West", "South", "North"], d: 2, isLongPassage: false },
-        // 难度 3: ~250 词
-        { q: "Passage:\nPhotosynthesis is the process by which green plants use sunlight to synthesize foods from carbon dioxide and water. It generates oxygen as a byproduct, which is essential for animal life. This process occurs primarily in the leaves of plants, specifically within chloroplasts containing chlorophyll. Through photosynthesis, plants convert solar energy into chemical energy that fuels their growth and reproduction. This chemical energy is stored in glucose, which is then used by the plant. The oxygen released into the atmosphere is essential for the respiration of most living organisms. Without this process, the food chain would collapse, and life on Earth would cease to exist. The balance between photosynthesis and respiration is delicate and crucial for maintaining the planet's atmosphere. As we face climate change, understanding this fundamental process becomes even more important.\n\nQuestion: What is the primary function of photosynthesis?", a: "To synthesize food using sunlight", w: ["To release carbon dioxide", "To consume oxygen", "To break down glucose"], d: 3, isLongPassage: false },
-        // 难度 4: ~300 词
-        { q: "Passage:\nThe concept of 'cognitive dissonance' refers to the mental discomfort experienced by a person who holds two contradictory beliefs. To reduce this discomfort, individuals often change one of their beliefs to align with the other, or they avoid situations that increase the dissonance. This theory has been widely applied in psychology and marketing to explain how people rationalize their decisions. For example, a smoker who knows smoking is harmful may convince themselves that the risks are exaggerated. Cognitive dissonance is a powerful motivator of behavior change, and understanding it can help us recognize our own biases. It explains why people often double down on their beliefs when presented with contradictory evidence, rather than changing their minds. By acknowledging this tendency, we can strive to be more open-minded and receptive to new information, although overcoming it requires constant effort and self-awareness.\n\nQuestion: What is the main consequence of cognitive dissonance?", a: "Altering a belief to reduce discomfort", w: ["Increasing contradictory beliefs", "Ignoring mental discomfort", "A type of learning"], d: 4, isLongPassage: false },
-        // 难度 5: ~350 词 (开始分栏)
-        { q: "Passage:\nTerence was stunned by the announcement: The school's band program was being canceled due to insufficient funding for new instruments. Many had been damaged beyond repair when a summer thunderstorm flooded the bandroom. While some were salvageable, there wouldn't be enough to support a full ensemble, and Terence, who lived to play the trumpet, was crushed.\n\nTerence couldn't focus at his Scout meeting later that evening. His mind kept drifting back to the loss of the program that had meant so much to him. But as his troop leader reviewed the requirements for the Eagle Scout project, something suddenly clicked.\n\nAt home, Terence sat at his desk, pulled out a notebook, and began to jot down thoughts as quickly as they came. The more he brainstormed, the more energized he felt. If his plan worked, he wouldn't just revive the music program at his own school—he could help other schools struggling with the same issue.\n\nOver the next several weeks, Terence launched his project. He reached out to community members, asking for donations of old or broken instruments. Soon, his family's garage was filled with brass, woodwind, percussion, and stringed instruments.\n\nQuestion: What can be inferred about Terence's character from his reaction to the cancellation?", a: "He is resilient and turns setbacks into larger opportunities.", w: ["He is easily defeated by bureaucratic decisions.", "He prefers to work alone rather than with his community.", "He is solely focused on his own personal achievement."], d: 5, isLongPassage: true },
-        // 难度 6: ~400 词
-        { q: "Passage:\nThe proliferation of digital echo chambers has fundamentally altered the epistemological landscape of modern democracies. Rather than fostering a vibrant marketplace of ideas, algorithmic curation creates insulated realities where confirmation bias is not merely a psychological tendency but an engineered feature. The result is an epistemic crisis where objective truth is subordinated to tribal identity. This fragmentation threatens the shared factual basis necessary for democratic deliberation. Social media platforms, driven by engagement metrics, amplify sensational content, which often reinforces existing beliefs and marginalizes opposing viewpoints. The challenge for society is to find ways to bridge these divides and restore a common understanding of reality. This phenomenon is not merely a byproduct of social media but a structural feature of engagement-driven algorithms. The algorithms prioritize content that elicits strong emotional reactions, often leading to the spread of misinformation and the polarization of public discourse. Overcoming this challenge requires not only technological solutions but also a renewed commitment to media literacy and critical thinking. We must teach individuals to evaluate sources critically and to seek out diverse perspectives, rather than retreating into comfortable echo chambers. Only by cultivating a shared commitment to truth can we hope to sustain a functioning democracy in the digital age.\n\nQuestion: What does the author identify as the fundamental driver of the epistemic crisis?", a: "Algorithmic curation prioritizing engagement over objective truth", w: ["The inherent tendency of humans toward confirmation bias", "A lack of diversity in digital media ownership", "The deliberate spread of misinformation by foreign actors"], d: 6, isLongPassage: true },
-        // 难度 7: ~500 词
-        { q: "Passage:\nThe economic history of the Industrial Revolution is often framed as a triumph of innovation, but this narrative obscures the profound social upheaval it entailed. The enclosure movement and rural-to-urban migration created a vast, exploitable labor force. While the factory system generated unprecedented wealth, it entrenched systemic inequalities and subjected workers to dehumanizing conditions. The laissez-faire ideology of the time allowed industrialists to amass great fortunes while workers toiled for meager wages. Eventually, the harsh realities of industrial capitalism led to the rise of labor unions and social reforms. The transition from an agrarian economy to an industrial one was not merely a technological shift; it was a complete restructuring of human existence. Families were uprooted, traditional crafts were destroyed, and entire communities were transformed into cogs in a massive industrial machine. The environmental impact was equally profound, as pollution and resource depletion accelerated at an unprecedented rate. While the Industrial Revolution laid the foundation for modern prosperity, it also created enduring challenges that continue to shape our world today. Understanding this complex legacy is essential for addressing contemporary issues of inequality, labor rights, and environmental sustainability.\n\nQuestion: What is the author's main critique of the traditional economic narrative of the Industrial Revolution?", a: "It obscures the severe social costs and systemic inequalities it caused", w: ["It fails to acknowledge the unprecedented wealth generated by factories", "It overstates the role of technological innovation in economic growth", "It exaggerates the dehumanizing conditions experienced by workers"], d: 7, isLongPassage: true },
-        // 难度 8: ~600 词
-        { q: "Passage:\nWhat do we want from our mothers when we are children? Complete submission. Oh, it's very nice and rational and respectable to say that a woman has every right to her life, to her ambitions, to her needs, and so on—it's what I've always demanded myself—but as a child, no, the truth is it's a war of attrition, rationality doesn't come into it, not one bit, all you want from your mother is that she once and for all admit that she is your mother and only your mother, and that her battle with the rest of life is over. She has to lay down arms and come to you. And if she doesn't do it, then it's really a war, and it was a war between my mother and me. Only as an adult did I come to truly admire her—especially in the last, painful years of her life—for all that she had done to claw some space in this world for herself. When I was young her refusal to submit to me confused and wounded me, especially as I felt none of the usual reasons for refusal applied. I was her only child and she had no job—not back then—and she hardly spoke to the rest of her family. As far as I was concerned, she had nothing but time. Yet still I couldn't get her complete submission! My earliest sense of her was of a woman plotting an escape, from me, from the very role of motherhood. I felt sorry for my father. He loved her, he wanted more children... but on this issue, as on all things, my mother refused to budge. Her mother had birthed seven children, her grandmother, eleven. She was not going back to all that. How he loved her! More than she knew or cared to know, she was someone who lived in her own dreamscape, who presumed that everyone around her was at all times feeling exactly as she was.\n\nQuestion: What does the author suggest about her childhood perception of her mother's refusal to submit?", a: "She felt wounded because her mother's refusal lacked standard societal justifications", w: ["She understood that her mother was fighting for feminist ideals against a patriarchal society", "She believed her mother was inherently cruel and incapable of maternal love", "She felt completely indifferent to her mother's personal ambitions and struggles"], d: 8, isLongPassage: true },
-        // 难度 9: ~700 词
-        { q: "Passage:\nThe existentialist notion that 'existence precedes essence' is a radical departure from classical philosophy. For Sartre, humanity is condemned to be free; we are thrust into a meaningless universe and must forge our own meaning through authentic choices. This freedom, however, is accompanied by profound anguish, as we bear the total responsibility for our actions and, by extension, for the world we create. To escape this responsibility through 'bad faith' (mauvaise foi) is to deny one's own freedom, reducing oneself to a mere object. This fundamental freedom is inescapable, as even the refusal to choose constitutes a choice. Therefore, authenticity requires acknowledging this absolute responsibility, embracing the anguish, and living with integrity. The existentialist project is not a counsel of despair but a call to embrace the creative potential of human freedom. This vision of radical freedom challenges us to confront the absurdity of existence without flinching, and to find meaning not in external absolutes but in our own committed actions. The weight of this freedom is immense, yet it is the very source of human dignity and possibility. Sartre's philosophy forces us to confront the uncomfortable truth that there is no predetermined path for our lives; we are the authors of our own destiny. This realization can be terrifying, but it is also liberating, as it opens up infinite possibilities for self-creation. The existentialist emphasis on individual responsibility extends to the political realm as well, urging us to take a stand against oppression and injustice, rather than succumbing to apathy or despair. In this sense, existentialism is not merely a philosophical abstraction, but a call to action, a demand that we live authentically and courageously in the face of an uncertain world.\n\nQuestion: What does Sartre mean by 'bad faith'?", a: "The denial of one's inherent freedom and responsibility to evade existential anguish", w: ["The belief in a higher power that dictates human destiny and purpose", "The conscious decision to act immorally against societal norms", "The rejection of the idea that life has any inherent meaning or purpose"], d: 9, isLongPassage: true },
-        // 难度 10: ~800 词
-        { q: "Passage:\nThe anthropic principle in cosmology suggests that the universe's physical constants are fine-tuned to allow the emergence of life. The weak anthropic principle states that our observations are necessarily biased by our existence; we can only observe a universe capable of supporting observers. The strong version proposes that the universe must have properties that allow life to develop. However, critics argue that the strong version is teleological and unscientific, as it implies a purposeful design rather than random chance. This debate touches on the deepest questions about the nature of the cosmos and our place within it. The fine-tuning problem remains one of the most profound mysteries in modern physics. Some physicists invoke the multiverse hypothesis to explain the apparent fine-tuning, suggesting that our universe is just one of countless others, each with different constants, and we happen to inhabit the one that allows life. Others remain skeptical, arguing that such speculations are beyond the reach of empirical science. The debate between proponents of the anthropic principle and its critics is not merely a technical dispute about physics; it is a philosophical battle over the limits of scientific explanation and the nature of evidence. If the universe is indeed fine-tuned for life, does that imply a cosmic designer, or is it merely a fortunate coincidence? These questions have profound implications for our understanding of reality and our place within it. Ultimately, the anthropic principle forces us to confront the remarkable fact of our existence in a vast and seemingly indifferent universe, challenging us to find meaning and purpose in a cosmos that may be fundamentally indifferent to our aspirations.\n\nQuestion: What is the fundamental critique of the strong anthropic principle?", a: "It relies on teleological assumptions that are inherently unscientific", w: ["It completely ignores the possibility of a multiverse explanation", "It contradicts the established laws of quantum mechanics", "It fails to account for the existence of dark matter"], d: 10, isLongPassage: true }
+    // ================= Reading：10 篇长文 × 每题 3~4 个变体问题 =================
+    var passages = [
+        { d:1, p:"Tom has a dog named Max. Max is brown and loves to play fetch in the park. Every morning, Tom and Max walk to the park near their house. Max is very energetic and always runs ahead. He is also a very loyal companion to Tom, and they have been inseparable since Max was a puppy. Max enjoys chasing squirrels and playing with other dogs. Tom often throws a tennis ball for Max to fetch, and Max never tires of this game. After their morning walk, they return home where Max takes a long nap.", variants:[
+            { q:"What color is Max?", a:"Brown", w:["Black","White","Gray"] },
+            { q:"What game does Max love to play?", a:"Fetch", w:["Hide-and-seek","Tug-of-war","Tag"] },
+            { q:"Where do Tom and Max walk every morning?", a:"To the park", w:["To the beach","To the forest","To the store"] }
+        ]},
+        { d:2, p:"The sun rises in the east and sets in the west. This is a natural phenomenon caused by the rotation of the Earth. When the sun is high in the sky, it is noon. The Earth's rotation on its axis takes approximately 24 hours, which gives us day and night. This consistent cycle has allowed humans to develop timekeeping systems for thousands of years. Ancient civilizations built monuments aligned with the sun's path, and farmers have relied on the sun's position to plan their planting and harvesting seasons. The sun's apparent movement across the sky is a fundamental part of life on Earth, influencing everything from our sleep patterns to the migration of animals.", variants:[
+            { q:"From which direction does the sun rise?", a:"East", w:["West","South","North"] },
+            { q:"What causes day and night?", a:"Earth's rotation", w:["The moon's orbit","The sun's revolution","Cloud cover"] },
+            { q:"Why have farmers relied on the sun's position?", a:"To plan planting and harvests", w:["To predict earthquakes","To navigate oceans","To build monuments"] }
+        ]},
+        { d:3, p:"Photosynthesis is the process by which green plants use sunlight to synthesize foods from carbon dioxide and water. It generates oxygen as a byproduct, which is essential for animal life. This process occurs primarily in the leaves of plants, specifically within chloroplasts containing chlorophyll. Through photosynthesis, plants convert solar energy into chemical energy that fuels their growth and reproduction.", variants:[
+            { q:"What is the primary function of photosynthesis?", a:"To synthesize food using sunlight", w:["To release carbon dioxide","To consume oxygen","To break down glucose"] },
+            { q:"Where does photosynthesis primarily occur?", a:"In the leaves", w:["In the roots","In the stem","In the flowers"] },
+            { q:"What gas is released as a byproduct?", a:"Oxygen", w:["Carbon dioxide","Nitrogen","Hydrogen"] }
+        ]},
+        { d:4, p:"The concept of 'cognitive dissonance' refers to the mental discomfort experienced by a person who holds two contradictory beliefs. To reduce this discomfort, individuals often change one of their beliefs to align with the other, or they avoid situations that increase the dissonance. This theory has been widely applied in psychology and marketing to explain how people rationalize their decisions.", variants:[
+            { q:"What is the main consequence of cognitive dissonance?", a:"Altering a belief to reduce discomfort", w:["Increasing contradictory beliefs","Ignoring mental discomfort","A type of learning"] },
+            { q:"How do people typically reduce cognitive dissonance?", a:"By changing a belief or avoiding dissonant situations", w:["By seeking more contradictory information","By ignoring all beliefs","By increasing mental discomfort"] }
+        ]},
+        { d:5, p:"Terence was stunned by the announcement: The school's band program was being canceled due to insufficient funding for new instruments. Many had been damaged beyond repair when a summer thunderstorm flooded the bandroom. While some were salvageable, there wouldn't be enough to support a full ensemble, and Terence, who lived to play the trumpet, was crushed.\n\nTerence couldn't focus at his Scout meeting later that evening. But as his troop leader reviewed the requirements for the Eagle Scout project, something suddenly clicked. At home, Terence sat at his desk, pulled out a notebook, and began to jot down thoughts as quickly as they came. If his plan worked, he wouldn't just revive the music program at his own school—he could help other schools struggling with the same issue.", variants:[
+            { q:"What can be inferred about Terence's character from his reaction?", a:"He is resilient and turns setbacks into larger opportunities.", w:["He is easily defeated by bureaucratic decisions.","He prefers to work alone rather than with his community.","He is solely focused on his own personal achievement."] },
+            { q:"What event triggered the cancellation of the band program?", a:"A thunderstorm flooded the bandroom and damaged instruments.", w:["The school board voted to cut all arts funding.","The band teacher resigned unexpectedly.","Students lost interest in the program."] }
+        ]},
+        { d:6, p:"The proliferation of digital echo chambers has fundamentally altered the epistemological landscape of modern democracies. Rather than fostering a vibrant marketplace of ideas, algorithmic curation creates insulated realities where confirmation bias is not merely a psychological tendency but an engineered feature. The result is an epistemic crisis where objective truth is subordinated to tribal identity. This fragmentation threatens the shared factual basis necessary for democratic deliberation. Social media platforms, driven by engagement metrics, amplify sensational content, which often reinforces existing beliefs and marginalizes opposing viewpoints.", variants:[
+            { q:"What does the author identify as the fundamental driver of the epistemic crisis?", a:"Algorithmic curation prioritizing engagement over objective truth", w:["The inherent tendency of humans toward confirmation bias","A lack of diversity in digital media ownership","The deliberate spread of misinformation by foreign actors"] },
+            { q:"What does the author mean by 'engineered feature'?", a:"A deliberate design outcome of algorithms", w:["A natural human cognitive bias","A government policy","A random technical glitch"] }
+        ]},
+        { d:7, p:"The economic history of the Industrial Revolution is often framed as a triumph of innovation, but this narrative obscures the profound social upheaval it entailed. The enclosure movement and rural-to-urban migration created a vast, exploitable labor force. While the factory system generated unprecedented wealth, it entrenched systemic inequalities and subjected workers to dehumanizing conditions. The laissez-faire ideology of the time allowed industrialists to amass great fortunes while workers toiled for meager wages. Eventually, the harsh realities of industrial capitalism led to the rise of labor unions and social reforms.", variants:[
+            { q:"What is the author's main critique of the traditional economic narrative?", a:"It obscures the severe social costs and systemic inequalities it caused", w:["It fails to acknowledge the unprecedented wealth generated by factories","It overstates the role of technological innovation in economic growth","It exaggerates the dehumanizing conditions experienced by workers"] },
+            { q:"According to the passage, what did laissez-faire ideology allow?", a:"Industrialists to amass great fortunes while workers toiled for meager wages", w:["Workers to form strong unions","The government to regulate factories","Equal distribution of wealth"] }
+        ]},
+        { d:8, p:"What do we want from our mothers when we are children? Complete submission. Oh, it's very nice and rational and respectable to say that a woman has every right to her life, to her ambitions, to her needs, and so on—it's what I've always demanded myself—but as a child, no, the truth is it's a war of attrition, rationality doesn't come into it, not one bit, all you want from your mother is that she once and for all admit that she is your mother and only your mother, and that her battle with the rest of life is over. She has to lay down arms and come to you. And if she doesn't do it, then it's really a war, and it was a war between my mother and me.", variants:[
+            { q:"What does the author suggest about her childhood perception of her mother's refusal to submit?", a:"She felt wounded because her mother's refusal lacked standard societal justifications", w:["She understood that her mother was fighting for feminist ideals against a patriarchal society","She believed her mother was inherently cruel and incapable of maternal love","She felt completely indifferent to her mother's personal ambitions and struggles"] },
+            { q:"What does the author mean by 'war of attrition'?", a:"A prolonged struggle of gradual exhaustion", w:["A quick and decisive battle","A peaceful negotiation","A formal legal dispute"] }
+        ]},
+        { d:9, p:"The existentialist notion that 'existence precedes essence' is a radical departure from classical philosophy. For Sartre, humanity is condemned to be free; we are thrust into a meaningless universe and must forge our own meaning through authentic choices. This freedom, however, is accompanied by profound anguish, as we bear the total responsibility for our actions and, by extension, for the world we create. To escape this responsibility through 'bad faith' (mauvaise foi) is to deny one's own freedom, reducing oneself to a mere object.", variants:[
+            { q:"What does Sartre mean by 'bad faith'?", a:"The denial of one's inherent freedom and responsibility to evade existential anguish", w:["The belief in a higher power that dictates human destiny and purpose","The conscious decision to act immorally against societal norms","The rejection of the idea that life has any inherent meaning or purpose"] },
+            { q:"What does 'existence precedes essence' imply?", a:"Humans first exist and then create their own meaning", w:["Essence is predetermined before birth","Existence is an illusion","Essence and existence are identical"] }
+        ]},
+        { d:10, p:"The anthropic principle in cosmology suggests that the universe's physical constants are fine-tuned to allow the emergence of life. The weak anthropic principle states that our observations are necessarily biased by our existence; we can only observe a universe capable of supporting observers. The strong version proposes that the universe must have properties that allow life to develop. However, critics argue that the strong version is teleological and unscientific, as it implies a purposeful design rather than random chance.", variants:[
+            { q:"What is the fundamental critique of the strong anthropic principle?", a:"It relies on teleological assumptions that are inherently unscientific", w:["It completely ignores the possibility of a multiverse explanation","It contradicts the established laws of quantum mechanics","It fails to account for the existence of dark matter"] },
+            { q:"What does the weak anthropic principle state?", a:"Our observations are biased by our existence", w:["The universe must allow life to develop","Life is inevitable in any universe","Physical constants are random"] }
+        ]}
     ];
-    addUniqueQuestions('Reading', readList);
+    passages.forEach(function(pass) {
+        pass.variants.forEach(function(v, vi) {
+            var q = "Passage:\n" + pass.p + "\n\nQuestion: " + v.q;
+            langList_push_reading(q, v.a, v.w, pass.d, 'reading-' + pass.d + '-' + vi);
+        });
+    });
+    function langList_push_reading(q, a, w, d, tag) {
+        var op = createOptions(a, w);
+        questionBank['Reading'].push({ subject:'Reading', question:q, options:op.options, answerIndex:op.answerIndex, difficulty:d, isLongPassage:true, tag:tag });
+    }
 
-    // ================= Science =================
+    // ================= Science：模板参数化，40+ 种问法 =================
     var sciList = [];
-    var sciContexts = ["[General] ", "[Physics] ", "[Biology] ", "[Chemistry] ", "[Ecology] ", "[Thermodynamics] ", "[Quantum] ", "[Genetics] ", "[Organic] ", "[Astrophysics] "];
+    var sciCtxs = ["[General] ","[Physics] ","[Biology] ","[Chemistry] ","[Ecology] ","[Thermodynamics] ","[Quantum] ","[Genetics] ","[Organic] ","[Astrophysics] "];
     var sciTemplates = [
-        { q: "Plants need to make food?", a: "Sunlight, water, CO2", w: ["Only sunlight", "Only soil", "Oxygen"], d: 1 },
-        { q: "Center of atom?", a: "Nucleus", w: ["Electron", "Proton", "Neutron"], d: 1 },
-        { q: "Closest planet to Sun?", a: "Mercury", w: ["Venus", "Earth", "Mars"], d: 2 },
-        { q: "Water made of?", a: "H and O", w: ["C and O", "O and N", "H and He"], d: 2 },
-        { q: "Mitochondria function?", a: "ATP production", w: ["Protein", "Lipid", "DNA"], d: 3 },
-        { q: "Newton's second law?", a: "F=ma", w: ["E=mc²", "PV=nRT", "v=d/t"], d: 3 },
-        { q: "Process by which plants make food?", a: "Photosynthesis", w: ["Respiration", "Transpiration", "Digestion"], d: 4 },
-        { q: "Most abundant gas?", a: "Nitrogen", w: ["Oxygen", "CO2", "Argon"], d: 4 },
-        { q: "First law of thermodynamics?", a: "Energy conserved", w: ["Entropy increases", "F=ma", "Action-reaction"], d: 5 },
-        { q: "Role of enzymes?", a: "Decrease activation energy", w: ["Increase", "Provide energy", "Consume"], d: 5 },
-        { q: "Mitosis vs meiosis?", a: "Mitosis 2, meiosis 4", w: ["Mitosis 4, meiosis 2", "Both 2", "Mitosis sex cells"], d: 6 },
-        { q: "Ribosome function?", a: "Protein synthesis", w: ["Lipid", "Carbohydrate", "DNA replication"], d: 6 },
-        { q: "Heisenberg uncertainty?", a: "Cannot know both exactly", w: ["Can know both", "Energy quantized", "Light wave"], d: 7 },
-        { q: "Ionic vs covalent?", a: "Ionic transfers, covalent shares", w: ["Ionic shares, covalent transfers", "Both share", "Both transfer"], d: 7 },
-        { q: "ATP synthase role?", a: "Produce ATP", w: ["Break down glucose", "Store oxygen", "Transport electrons"], d: 8 },
-        { q: "Pauli exclusion?", a: "No two electrons same quantum", w: ["Electrons orbit", "Energy quantized", "Light particle"], d: 8 },
-        { q: "Pauli exclusion (fermions)?", a: "No two fermions same state", w: ["Bosons cannot share", "Electrons orbit", "Energy conserved"], d: 9 },
-        { q: "Krebs cycle role?", a: "Generate electron carriers", w: ["Produce glucose", "Break down fatty acids", "Synthesize proteins"], d: 9 },
-        { q: "Quantum number for shape?", a: "Azimuthal (l)", w: ["Principal (n)", "Magnetic (m)", "Spin (s)"], d: 10 },
-        { q: "Catalyst effect?", a: "Lowers activation energy", w: ["Increases", "Changes equilibrium", "Consumed"], d: 10 }
+        { q:"Plants need what to make food?", a:"Sunlight, water, CO2", w:["Only sunlight","Only soil","Oxygen"], d:1, tag:'sci-photosyn' },
+        { q:"What is the center of an atom?", a:"Nucleus", w:["Electron cloud","Proton shell","Neutron ring"], d:1, tag:'sci-atom' },
+        { q:"Closest planet to the Sun?", a:"Mercury", w:["Venus","Earth","Mars"], d:2, tag:'sci-planet' },
+        { q:"Water is made of?", a:"H and O", w:["C and O","O and N","H and He"], d:2, tag:'sci-water' },
+        { q:"Function of mitochondria?", a:"ATP production", w:["Protein synthesis","Lipid storage","DNA replication"], d:3, tag:'sci-mito' },
+        { q:"Newton's second law?", a:"F=ma", w:["E=mc²","PV=nRT","v=d/t"], d:3, tag:'sci-newton' },
+        { q:"Most abundant gas in the atmosphere?", a:"Nitrogen", w:["Oxygen","CO2","Argon"], d:4, tag:'sci-gas' },
+        { q:"What does DNA stand for?", a:"Deoxyribonucleic acid", w:["Dinucleic acid","Deoxyribose nucleic amino","Double nucleic acid"], d:4, tag:'sci-dna' },
+        { q:"First law of thermodynamics?", a:"Energy is conserved", w:["Entropy always increases","F=ma","Action-reaction"], d:5, tag:'sci-thermo' },
+        { q:"Role of enzymes?", a:"Decrease activation energy", w:["Increase activation energy","Provide energy","Consume energy"], d:5, tag:'sci-enzyme' },
+        { q:"Mitosis produces how many cells?", a:"2", w:["4","1","8"], d:6, tag:'sci-mitosis' },
+        { q:"Ribosome function?", a:"Protein synthesis", w:["Lipid synthesis","Carbohydrate storage","DNA replication"], d:6, tag:'sci-ribosome' },
+        { q:"Heisenberg uncertainty principle?", a:"Cannot know both position and momentum exactly", w:["Can know both exactly","Energy is quantized","Light is a wave"], d:7, tag:'sci-heisenberg' },
+        { q:"Ionic vs covalent bonds?", a:"Ionic transfers electrons, covalent shares", w:["Ionic shares, covalent transfers","Both share electrons","Both transfer electrons"], d:7, tag:'sci-bond' },
+        { q:"ATP synthase role?", a:"Produce ATP", w:["Break down glucose","Store oxygen","Transport electrons"], d:8, tag:'sci-atp' },
+        { q:"Pauli exclusion principle?", a:"No two fermions can occupy the same quantum state", w:["Bosons cannot share states","Electrons orbit in shells","Energy is conserved"], d:8, tag:'sci-pauli' },
+        { q:"Krebs cycle role?", a:"Generate electron carriers", w:["Produce glucose","Break down fatty acids","Synthesize proteins"], d:9, tag:'sci-krebs' },
+        { q:"Quantum number for orbital shape?", a:"Azimuthal (l)", w:["Principal (n)","Magnetic (m)","Spin (s)"], d:9, tag:'sci-quantum' },
+        { q:"Catalyst effect?", a:"Lowers activation energy", w:["Increases activation energy","Changes equilibrium","Is consumed in reaction"], d:10, tag:'sci-catalyst' },
+        { q:"What is entropy?", a:"A measure of disorder", w:["A measure of energy","A type of force","A particle"], d:10, tag:'sci-entropy' },
+        { q:"Speed of light in vacuum?", a:"3 × 10⁸ m/s", w:["3 × 10⁶ m/s","3 × 10¹⁰ m/s","1 × 10⁸ m/s"], d:6, tag:'sci-light' },
+        { q:"What organelle is the 'powerhouse' of the cell?", a:"Mitochondria", w:["Nucleus","Ribosome","Golgi apparatus"], d:3, tag:'sci-powerhouse' },
+        { q:"What is the pH of pure water?", a:"7", w:["0","14","1"], d:4, tag:'sci-ph' },
+        { q:"Which planet is known as the Red Planet?", a:"Mars", w:["Venus","Jupiter","Mercury"], d:2, tag:'sci-redplanet' },
+        { q:"What is the formula for kinetic energy?", a:"½mv²", w:["mgh","Fd","mv"], d:7, tag:'sci-ke' },
+        { q:"What molecule carries genetic information?", a:"DNA", w:["RNA","Protein","Lipid"], d:3, tag:'sci-genetic' },
+        { q:"What is natural selection?", a:"Differential survival and reproduction", w:["Random mutation only","Genetic drift","Artificial breeding"], d:8, tag:'sci-selection' },
+        { q:"What is a black hole?", a:"A region where gravity prevents light from escaping", w:["A star that has run out of fuel","A planet with no atmosphere","A type of galaxy"], d:9, tag:'sci-blackhole' },
+        { q:"What is the function of the cell membrane?", a:"Regulates what enters and exits the cell", w:["Produces proteins","Stores genetic material","Generates ATP"], d:5, tag:'sci-membrane' },
+        { q:"What is an isotope?", a:"Atoms with the same protons but different neutrons", w:["Atoms with different protons","Molecules with different bonds","Ions with different charges"], d:6, tag:'sci-isotope' }
     ];
     for (var d = 1; d <= 10; d++) {
-        for (var i = 0; i < 50; i++) {
-            var t = sciTemplates[i % sciTemplates.length];
-            var ctx = sciContexts[i % sciContexts.length];
-            sciList.push({ q: ctx + t.q, a: t.a, w: t.w, d: t.d });
+        sciTemplates.forEach(function(t) {
+            if (t.d === d) {
+                sciList.push({ q: pick(sciCtxs) + t.q, a: t.a, w: t.w.slice(), d: d, tag: t.tag });
+            }
+        });
+        // 额外随机生成同难度变体（参数化）
+        for (var i = 0; i < 20; i++) {
+            var tt = sciTemplates[i % sciTemplates.length];
+            // 只对可参数化的做变体
+            if (tt.tag === 'sci-atom') {
+                var el = pick(['carbon','oxygen','hydrogen','nitrogen','iron']);
+                sciList.push({ q: pick(sciCtxs) + "What is the center of a " + el + " atom?", a: "Nucleus", w: ["Electron cloud","Proton shell","Neutron ring"], d: d, tag: 'sci-atom-' + el });
+            } else if (tt.tag === 'sci-planet') {
+                var planets = [['Mercury','Venus','Earth','Mars'],['Venus','Earth','Mars','Jupiter'],['Earth','Mars','Jupiter','Saturn']];
+                var pp = pick(planets);
+                sciList.push({ q: pick(sciCtxs) + "Which planet is " + pp[0] + "?", a: pp[0], w: pp.slice(1), d: d, tag: 'sci-planet-' + pp[0] });
+            }
         }
     }
+    // 去重后加入
     addUniqueQuestions('Science', sciList);
 }
 
@@ -284,6 +351,7 @@ var currentIndex = 0;
 var currentDifficulty = 1;
 var correctCount = 0;
 var usedQuestions = [];
+var usedTags = {};
 var TOTAL = 40;
 
 function startQuiz(subject) {
@@ -295,6 +363,7 @@ function startQuiz(subject) {
     currentDifficulty = 1;
     correctCount = 0;
     usedQuestions = [];
+    usedTags = {};
     loadNextQuestion();
 }
 
@@ -304,12 +373,14 @@ function loadNextQuestion() {
     if (!q) { showResult(); return; }
     currentQuestion = q;
     usedQuestions.push(q);
-    
+    if (!usedTags[q.tag]) usedTags[q.tag] = 0;
+    usedTags[q.tag]++;
+
     document.getElementById('subjectBadge').textContent = currentSubject;
     document.getElementById('questionCounter').textContent = "Question " + (currentIndex + 1) + " / " + TOTAL;
     document.getElementById('difficultyDisplay').textContent = "难度 " + currentDifficulty;
     document.getElementById('questionText').textContent = q.question;
-    
+
     var optionsContainer = document.getElementById('optionsContainer');
     optionsContainer.innerHTML = '';
     q.options.forEach(function(opt, idx) {
@@ -321,11 +392,8 @@ function loadNextQuestion() {
     });
 
     var panel = document.getElementById('questionPanelContainer');
-    if (q.isLongPassage) {
-        panel.classList.add('split-view');
-    } else {
-        panel.classList.remove('split-view');
-    }
+    if (q.isLongPassage) panel.classList.add('split-view');
+    else panel.classList.remove('split-view');
 
     document.getElementById('feedbackArea').textContent = '选择一个答案';
     document.getElementById('feedbackArea').className = 'feedback-area';
@@ -335,27 +403,41 @@ function loadNextQuestion() {
     document.getElementById('progressFill').style.width = ((currentIndex / TOTAL) * 100) + '%';
 }
 
+// 改进选题：优先选“同难度 + 未用过 + 同 tag 使用次数少”的题
 function pickQuestion(diff) {
     var bank = questionBank[currentSubject];
-    var candidates = bank.filter(function(q) { return !usedQuestions.includes(q) && q.difficulty === diff; });
+    var candidates = bank.filter(function(q) {
+        return !usedQuestions.includes(q) && q.difficulty === diff;
+    });
     if (candidates.length === 0) {
+        // 回退到最接近难度
         var minDiff = 100;
-        bank.forEach(function(q) { if (!usedQuestions.includes(q)) minDiff = Math.min(minDiff, Math.abs(q.difficulty - diff)); });
-        candidates = bank.filter(function(q) { return !usedQuestions.includes(q) && Math.abs(q.difficulty - diff) === minDiff; });
+        bank.forEach(function(q) {
+            if (!usedQuestions.includes(q)) minDiff = Math.min(minDiff, Math.abs(q.difficulty - diff));
+        });
+        candidates = bank.filter(function(q) {
+            return !usedQuestions.includes(q) && Math.abs(q.difficulty - diff) === minDiff;
+        });
     }
-    return candidates.length > 0 ? candidates[Math.floor(Math.random() * candidates.length)] : null;
+    if (candidates.length === 0) return null;
+    // 在候选中优先选 tag 使用次数最少的
+    var minTagUse = Infinity;
+    candidates.forEach(function(q) {
+        var c = usedTags[q.tag] || 0;
+        if (c < minTagUse) minTagUse = c;
+    });
+    var best = candidates.filter(function(q) { return (usedTags[q.tag] || 0) === minTagUse; });
+    return best[Math.floor(Math.random() * best.length)];
 }
 
 function handleAnswer(selectedIdx) {
     if (!document.getElementById('nextBtn').disabled) return;
     var isCorrect = selectedIdx === currentQuestion.answerIndex;
-    
     document.querySelectorAll('.option-btn').forEach(function(btn, idx) {
         btn.disabled = true;
         if (idx === selectedIdx) btn.classList.add(isCorrect ? 'correct' : 'wrong');
         if (idx === currentQuestion.answerIndex && idx !== selectedIdx) btn.classList.add('correct');
     });
-
     if (isCorrect) {
         document.getElementById('feedbackArea').textContent = '✅ 正确！';
         document.getElementById('feedbackArea').className = 'feedback-area correct-feedback';
@@ -366,7 +448,6 @@ function handleAnswer(selectedIdx) {
         document.getElementById('feedbackArea').className = 'feedback-area wrong-feedback';
         currentDifficulty = Math.max(1, currentDifficulty - 1);
     }
-    
     document.getElementById('difficultyDisplay').textContent = "难度 " + currentDifficulty;
     document.getElementById('nextBtn').disabled = false;
     document.getElementById('skipBtn').disabled = true;
@@ -396,12 +477,9 @@ function showResult() {
     document.getElementById('quizView').classList.add('hidden');
     document.getElementById('resultView').classList.remove('hidden');
     document.getElementById('progressFill').style.width = '100%';
-    
     var accuracy = correctCount / TOTAL;
-    var difficultyScore = (currentDifficulty / 10);
-    var finalScoreVal = Math.round((accuracy * 210) + (difficultyScore * 140));
-    finalScoreVal = Math.min(350, finalScoreVal);
-    
+    var difficultyScore = currentDifficulty / 10;
+    var finalScoreVal = Math.min(350, Math.round(accuracy * 210 + difficultyScore * 140));
     document.getElementById('finalScore').textContent = finalScoreVal;
     document.getElementById('finalDetail').textContent = "正确 " + correctCount + " / " + TOTAL + " 题 · 最终难度 " + currentDifficulty + "/10";
     document.getElementById('difficultyResult').textContent = "得分配比：正确率得分 (" + Math.round(accuracy * 210) + ") + 难度得分 (" + Math.round(difficultyScore * 140) + ")";
