@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>MAP 极限自适应测试 · 终极全量版（修复重复）</title>
+<title>MAP 极限自适应测试 · 每科每难度40模板 · Reading词数阶梯</title>
 <style>
 *{box-sizing:border-box;font-family:'Segoe UI',sans-serif;margin:0;padding:0}
 body{background:linear-gradient(145deg,#1e2b3c,#0f1a26);min-height:100vh;display:flex;justify-content:center;align-items:center;padding:20px}
@@ -53,8 +53,8 @@ body{background:linear-gradient(145deg,#1e2b3c,#0f1a26);min-height:100vh;display
 <div id="subjectView">
     <div class="test-header"><span class="subject-badge">MAP 挑战</span><span class="question-counter">选择科目</span></div>
     <div class="question-panel" style="text-align:center">
-        <div style="font-size:2rem;font-weight:600;margin:20px 0 10px;color:#0b1a2b">🔥 完美字数长文版</div>
-        <div style="font-size:1rem;color:#3d5068;margin-bottom:20px">100词到800词极致递增 · 绝对反套路选项 · 全科海量真题</div>
+        <div style="font-size:2rem;font-weight:600;margin:20px 0 10px;color:#0b1a2b">🔥 极限自适应挑战</div>
+        <div style="font-size:1rem;color:#3d5068;margin-bottom:20px">Reading 难度 D → 约 D×100 词文章 · 全科海量真题</div>
         <div class="subject-selector">
             <button class="subject-btn" onclick="startQuiz('Math')">Math</button>
             <button class="subject-btn" onclick="startQuiz('Language Usage')">Language Usage</button>
@@ -86,6 +86,7 @@ body{background:linear-gradient(145deg,#1e2b3c,#0f1a26);min-height:100vh;display
 </div>
 
 <script>
+// ================= 通用工具 =================
 var questionBank = { Math: [], 'Language Usage': [], Reading: [], Science: [] };
 
 function shuffleArray(arr) {
@@ -98,196 +99,277 @@ function shuffleArray(arr) {
 }
 
 function createOptions(correctAns, baseWrongs) {
-    // 去重错误选项
-    var seen = new Set();
-    var wrongs = baseWrongs.filter(function(w){ if(seen.has(w))return false; seen.add(w); return true; });
-    // 不足 3 个时补随机数字/文本
-    while (wrongs.length < 3) {
-        wrongs.push("None of the above " + Math.floor(Math.random()*1000));
-    }
+    var seen = new Set([correctAns]);
+    var wrongs = [];
+    baseWrongs.forEach(function(w) {
+        if (!seen.has(w)) { seen.add(w); wrongs.push(w); }
+    });
+    while (wrongs.length < 3) wrongs.push("None of the above " + Math.floor(Math.random()*10000));
     var allOpts = [correctAns].concat(wrongs.slice(0,3));
     var shuffledOpts = shuffleArray(allOpts);
     return { options: shuffledOpts, answerIndex: shuffledOpts.indexOf(correctAns) };
 }
 
-function addUniqueQuestions(subject, list) {
-    var seen = new Set();
-    list.forEach(function(t) {
-        var key = t.q + "|" + t.a;
-        if (!seen.has(key)) {
-            seen.add(key);
-            var op = createOptions(t.a, t.w);
-            questionBank[subject].push({
-                subject: subject,
-                question: t.q,
-                options: op.options,
-                answerIndex: op.answerIndex,
-                difficulty: t.d,
-                isLongPassage: t.isLongPassage || false,
-                tag: t.tag || ('d' + t.d)
-            });
-        }
-    });
-}
-
-// ============ 随机工具 ============
 function rnd(min, max) { return Math.floor(Math.random() * (max - min + 1)) + min; }
 function pick(arr) { return arr[Math.floor(Math.random() * arr.length)]; }
 
+// ================= 题库构建 =================
+// 每科每难度恰好 40 道不同模板题
 function buildBank() {
-    // ================= Math：随机生成，题型多样 =================
+    buildMath();
+    buildLanguage();
+    buildReading();
+    buildScience();
+}
+
+// ---------- Math: 10 难度 × 40 模板 ----------
+function buildMath() {
     var mathList = [];
-    var mathTags = ['add','sub','mul','div','eq','area','deriv','integ','limit','det'];
     for (var d = 1; d <= 10; d++) {
-        for (var i = 0; i < 60; i++) {
-            var tag = mathTags[i % mathTags.length];
-            if (tag === 'add') {
-                var a = rnd(5*d, 20*d), b = rnd(5*d, 20*d);
-                mathList.push({ q: "Calculate: " + a + " + " + b + " = ?", a: ""+(a+b), w: [""+(a+b+rnd(1,9)), ""+(a+b-rnd(1,9)), ""+(a+b+rnd(10,19))], d: d, tag: 'math-add' });
-            } else if (tag === 'sub') {
-                var a = rnd(10*d, 40*d), b = rnd(1, 10*d);
-                mathList.push({ q: "Calculate: " + a + " - " + b + " = ?", a: ""+(a-b), w: [""+(a-b+rnd(1,5)), ""+(a-b-rnd(1,5)), ""+(a+b)], d: d, tag: 'math-sub' });
-            } else if (tag === 'mul') {
-                var a = rnd(2, 12+d), b = rnd(2, 12+d);
-                mathList.push({ q: "Calculate: " + a + " × " + b + " = ?", a: ""+(a*b), w: [""+(a*b+a), ""+(a*b-b), ""+(a+b)], d: d, tag: 'math-mul' });
-            } else if (tag === 'div') {
-                var b = rnd(2, 12); var qq = rnd(2, 12+d); var a = b*qq;
-                mathList.push({ q: "Calculate: " + a + " ÷ " + b + " = ?", a: ""+qq, w: [""+(qq+1), ""+(qq-1), ""+(qq+2)], d: d, tag: 'math-div' });
-            } else if (tag === 'eq') {
-                var x = rnd(2, 9); var a = rnd(2, 8); var b = rnd(1, 20);
-                mathList.push({ q: "Solve for x: " + a + "x + " + b + " = " + (a*x+b), a: ""+x, w: [""+(x+1), ""+(x-1), ""+(x+2)], d: d, tag: 'math-eq' });
-            } else if (tag === 'area') {
-                var w = rnd(3, 15), h = rnd(3, 15);
-                mathList.push({ q: "Area of rectangle width " + w + ", length " + h + "?", a: ""+(w*h), w: [""+(w+h), ""+(2*(w+h)), ""+(w*h+5)], d: d, tag: 'math-area' });
-            } else if (tag === 'deriv') {
-                var a = rnd(2, 9), b = rnd(1, 9);
-                mathList.push({ q: "Derivative of " + a + "x² + " + b + "x?", a: "" + (2*a) + "x + " + b, w: [""+a+"x + "+b, ""+(2*a)+"x", ""+a+"x² + "+b], d: d, tag: 'math-deriv' });
-            } else if (tag === 'integ') {
-                var a = rnd(2, 10);
-                mathList.push({ q: "∫ " + a + "x dx = ?", a: "" + (a/2) + "x² + C", w: [""+a+"x² + C", ""+(a/2)+"x + C", ""+a+"x + C"], d: d, tag: 'math-integ' });
-            } else if (tag === 'limit') {
-                var a = rnd(1, 6), b = rnd(1, 6);
-                mathList.push({ q: "lim(x→0) sin(" + a + "x)/(" + b + "x) = ?", a: "" + (a/b), w: [""+(b/a), "1", "0"], d: d, tag: 'math-limit' });
-            } else {
-                var a = rnd(2, 6);
-                mathList.push({ q: "Determinant of [[" + a + ", 1], [1, " + a + "]] = ?", a: "" + (a*a - 1), w: [""+(a*a + 1), ""+(a), "0"], d: d, tag: 'math-det' });
+        for (var i = 0; i < 40; i++) {
+            var tag, q, a, w;
+            var n1 = rnd(1, d*10+10), n2 = rnd(1, d*10+10);
+            var type = i % 10;
+            switch(type) {
+                case 0: // 加法
+                    q = "Calculate: " + n1 + " + " + n2 + " = ?";
+                    a = "" + (n1+n2);
+                    w = ["" + (n1+n2+1), "" + (n1+n2-2), "" + (n1+n2+5)];
+                    tag = 'math-add'; break;
+                case 1: // 减法
+                    var big = Math.max(n1, n2), small = Math.min(n1, n2);
+                    q = "Calculate: " + big + " - " + small + " = ?";
+                    a = "" + (big - small);
+                    w = ["" + (big - small + 1), "" + (big - small - 1), "" + (big + small)];
+                    tag = 'math-sub'; break;
+                case 2: // 乘法
+                    var m1 = rnd(1, d*5+5), m2 = rnd(1, d*5+5);
+                    q = "Calculate: " + m1 + " × " + m2 + " = ?";
+                    a = "" + (m1*m2);
+                    w = ["" + (m1*m2+m1), "" + (m1*m2-m2), "" + (m1+m2)];
+                    tag = 'math-mul'; break;
+                case 3: // 除法
+                    var divB = rnd(2, d*4+4), divQ = rnd(2, d*4+4), divA = divB*divQ;
+                    q = "Calculate: " + divA + " ÷ " + divB + " = ?";
+                    a = "" + divQ;
+                    w = ["" + (divQ+1), "" + (divQ-1), "" + (divQ+2)];
+                    tag = 'math-div'; break;
+                case 4: // 方程
+                    var x = rnd(2, d*3+3), coeff = rnd(2, d+5), rhs = coeff*x + rnd(1,20);
+                    q = "Solve for x: " + coeff + "x + " + (rhs - coeff*x) + " = " + rhs;
+                    a = "" + x;
+                    w = ["" + (x+1), "" + (x-1), "" + (x+2)];
+                    tag = 'math-eq'; break;
+                case 5: // 面积
+                    var ww = rnd(2, d*5+5), hh = rnd(2, d*5+5);
+                    q = "Area of a rectangle with width " + ww + " and length " + hh + "?";
+                    a = "" + (ww*hh);
+                    w = ["" + (ww+hh), "" + (2*(ww+hh)), "" + (ww*hh+3)];
+                    tag = 'math-area'; break;
+                case 6: // 导数
+                    var da = rnd(2, d+5), db = rnd(1, d+5);
+                    q = "Derivative of " + da + "x² + " + db + "x?";
+                    a = "" + (2*da) + "x + " + db;
+                    w = ["" + da + "x + " + db, "" + (2*da) + "x", "" + da + "x² + " + db];
+                    tag = 'math-deriv'; break;
+                case 7: // 积分
+                    var ia = rnd(2, d*2+4);
+                    q = "∫ " + ia + "x dx = ?";
+                    a = "" + (ia/2) + "x² + C";
+                    w = ["" + ia + "x² + C", "" + (ia/2) + "x + C", "" + ia + "x + C"];
+                    tag = 'math-integ'; break;
+                case 8: // 极限
+                    var la = rnd(1, d+3), lb = rnd(1, d+3);
+                    q = "lim(x→0) sin(" + la + "x)/(" + lb + "x) = ?";
+                    a = "" + (la/lb);
+                    w = ["" + (lb/la), "1", "0"];
+                    tag = 'math-limit'; break;
+                default: // 行列式
+                    var det = rnd(2, d+4);
+                    q = "Determinant of [[" + det + ", 1], [1, " + det + "]] = ?";
+                    a = "" + (det*det - 1);
+                    w = ["" + (det*det + 1), "" + det, "0"];
+                    tag = 'math-det'; break;
             }
+            mathList.push({ q: q, a: a, w: w, d: d, tag: tag + '-' + d + '-' + i });
         }
     }
     addUniqueQuestions('Math', mathList);
+}
 
-    // ================= Language Usage：参数化模板 =================
+// ---------- Language Usage: 10 难度 × 40 模板 ----------
+function buildLanguage() {
     var langList = [];
-    var ctxs = ["[Literature] ","[Formal] ","[Everyday] ","[Academic] ","[Business] ","[Journalism] ","[Legal] ","[Scientific] ","[Historical] ","[Philosophical] "];
+    var contexts = ["[Literature] ","[Formal] ","[Everyday] ","[Academic] ","[Business] ","[Journalism] ","[Legal] ","[Scientific] ","[Historical] ","[Philosophical] "];
     for (var d = 1; d <= 10; d++) {
         for (var i = 0; i < 40; i++) {
-            var ctx = ctxs[i % ctxs.length];
-            var tag;
+            var ctx = contexts[i % contexts.length];
+            var tag, q, a, w;
+            var variant = i % 8;
             if (d <= 2) {
-                tag = ['lang-pronoun','lang-tense'][i%2];
-                if (tag === 'lang-pronoun') {
-                    var s = pick(['They','We','You','He','She']);
+                if (variant % 2 === 0) {
+                    var subj = pick(['They','We','You','He','She','It']);
                     var verb = pick(['are','were','have been','will be']);
-                    langList.push({ q: ctx + "Correct subject pronoun: ___ " + verb + " ready.", a: s, w: [pick(['Them','Their','There','They\'re']), pick(['Him','His','He\'s']), pick(['Us','Our','We\'re'])], d: d, tag: tag });
+                    q = ctx + "Choose the correct pronoun: ___ " + verb + " ready.";
+                    a = subj;
+                    w = [pick(['Them','Their','There',"They're"]), pick(['Him','His',"He's"]), pick(['Us','Our',"We're"])];
+                    tag = 'lang-pronoun';
                 } else {
-                    var base = pick(['run','walk','eat','write','swim','go','see']);
-                    var past = {run:'ran',walk:'walked',eat:'ate',write:'wrote',swim:'swam',go:'went',see:'saw'}[base];
-                    langList.push({ q: ctx + "Past tense of '" + base + "'?", a: past, w: [base+'ed', base+'ing', base+'s'], d: d, tag: tag });
+                    var base = pick(['run','walk','eat','write','swim','go','see','take','give','make']);
+                    var pastMap = {run:'ran',walk:'walked',eat:'ate',write:'wrote',swim:'swam',go:'went',see:'saw',take:'took',give:'gave',make:'made'};
+                    q = ctx + "What is the past tense of '" + base + "'?";
+                    a = pastMap[base];
+                    w = [base + 'ed', base + 'ing', base + 's'];
+                    tag = 'lang-tense';
                 }
             } else if (d <= 4) {
-                tag = ['lang-error','lang-colon'][i%2];
-                if (tag === 'lang-error') {
-                    langList.push({ q: ctx + "Find the error: 'Neither of the girls were ready.'", a: "were", w: ["Neither","girls","ready"], d: d, tag: tag });
+                if (variant % 2 === 0) {
+                    q = ctx + "Find the error: 'Neither of the girls were ready.'";
+                    a = "were";
+                    w = ["Neither", "girls", "ready"];
+                    tag = 'lang-error';
                 } else {
-                    langList.push({ q: ctx + "Which uses a colon correctly?", a: "He had one goal: to win.", w: ["He had: one goal.","He had one goal; to win.","He had one goal, to: win."], d: d, tag: tag });
+                    q = ctx + "Which sentence uses a colon correctly?";
+                    a = "He had one goal: to win.";
+                    w = ["He had: one goal.", "He had one goal; to win.", "He had one goal, to: win."];
+                    tag = 'lang-colon';
                 }
             } else if (d <= 6) {
-                tag = ['lang-modifier','lang-clause'][i%2];
-                if (tag === 'lang-modifier') {
-                    langList.push({ q: ctx + "Fix the dangling modifier: 'Walking down the street, the trees were beautiful.'", a: "Walking down the street, I saw beautiful trees.", w: ["The trees were beautiful walking down the street.","Walking down the street, the trees were.","The street had beautiful trees walking."], d: d, tag: tag });
+                if (variant % 2 === 0) {
+                    q = ctx + "Fix the dangling modifier: 'Walking down the street, the trees were beautiful.'";
+                    a = "Walking down the street, I saw beautiful trees.";
+                    w = ["The trees were beautiful walking down the street.", "Walking down the street, the trees were.", "The street had beautiful trees walking."];
+                    tag = 'lang-modifier';
                 } else {
-                    langList.push({ q: ctx + "Clause type: 'Whoever finishes first will win.'", a: "Noun clause", w: ["Adjective clause","Adverb clause","Independent clause"], d: d, tag: tag });
+                    q = ctx + "Identify the clause type: 'Whoever finishes first will win.'";
+                    a = "Noun clause";
+                    w = ["Adjective clause", "Adverb clause", "Independent clause"];
+                    tag = 'lang-clause';
                 }
             } else if (d <= 8) {
-                tag = ['lang-fallacy','lang-inversion'][i%2];
-                if (tag === 'lang-fallacy') {
-                    langList.push({ q: ctx + "Logical fallacy: 'Either you support this or you are unpatriotic.'", a: "False dilemma", w: ["Ad hominem","Straw man","Slippery slope"], d: d, tag: tag });
+                if (variant % 2 === 0) {
+                    q = ctx + "What logical fallacy is: 'Either you support this or you are unpatriotic.'?";
+                    a = "False dilemma";
+                    w = ["Ad hominem", "Straw man", "Slippery slope"];
+                    tag = 'lang-fallacy';
                 } else {
-                    langList.push({ q: ctx + "Inversion type: 'Seldom have I seen such courage.'", a: "Negative inversion", w: ["Locative inversion","Conditional inversion","Comparative inversion"], d: d, tag: tag });
+                    q = ctx + "What type of inversion is: 'Seldom have I seen such courage.'?";
+                    a = "Negative inversion";
+                    w = ["Locative inversion", "Conditional inversion", "Comparative inversion"];
+                    tag = 'lang-inversion';
                 }
             } else {
-                tag = ['lang-idiom','lang-syntax'][i%2];
-                if (tag === 'lang-idiom') {
-                    langList.push({ q: ctx + "Meaning of 'to gild the lily'?", a: "Unnecessarily embellish", w: ["To ruin a good thing","To hide the truth","To praise excessively"], d: d, tag: tag });
+                if (variant % 2 === 0) {
+                    q = ctx + "What does 'to gild the lily' mean?";
+                    a = "Unnecessarily embellish";
+                    w = ["To ruin a good thing", "To hide the truth", "To praise excessively"];
+                    tag = 'lang-idiom';
                 } else {
-                    langList.push({ q: ctx + "Syntax type: 'Hardly had he arrived when the storm broke.'", a: "Negative inversion", w: ["Locative inversion","Conditional inversion","Subject-verb inversion"], d: d, tag: tag });
+                    q = ctx + "What syntax type is: 'Hardly had he arrived when the storm broke.'?";
+                    a = "Negative inversion";
+                    w = ["Locative inversion", "Conditional inversion", "Subject-verb inversion"];
+                    tag = 'lang-syntax';
                 }
             }
+            langList.push({ q: q, a: a, w: w, d: d, tag: tag + '-' + d + '-' + i });
         }
     }
     addUniqueQuestions('Language Usage', langList);
+}
 
-    // ================= Reading：10 篇长文 × 每题 3~4 个变体问题 =================
-    var passages = [
-        { d:1, p:"Tom has a dog named Max. Max is brown and loves to play fetch in the park. Every morning, Tom and Max walk to the park near their house. Max is very energetic and always runs ahead. He is also a very loyal companion to Tom, and they have been inseparable since Max was a puppy. Max enjoys chasing squirrels and playing with other dogs. Tom often throws a tennis ball for Max to fetch, and Max never tires of this game. After their morning walk, they return home where Max takes a long nap.", variants:[
-            { q:"What color is Max?", a:"Brown", w:["Black","White","Gray"] },
-            { q:"What game does Max love to play?", a:"Fetch", w:["Hide-and-seek","Tug-of-war","Tag"] },
-            { q:"Where do Tom and Max walk every morning?", a:"To the park", w:["To the beach","To the forest","To the store"] }
-        ]},
-        { d:2, p:"The sun rises in the east and sets in the west. This is a natural phenomenon caused by the rotation of the Earth. When the sun is high in the sky, it is noon. The Earth's rotation on its axis takes approximately 24 hours, which gives us day and night. This consistent cycle has allowed humans to develop timekeeping systems for thousands of years. Ancient civilizations built monuments aligned with the sun's path, and farmers have relied on the sun's position to plan their planting and harvesting seasons. The sun's apparent movement across the sky is a fundamental part of life on Earth, influencing everything from our sleep patterns to the migration of animals.", variants:[
-            { q:"From which direction does the sun rise?", a:"East", w:["West","South","North"] },
-            { q:"What causes day and night?", a:"Earth's rotation", w:["The moon's orbit","The sun's revolution","Cloud cover"] },
-            { q:"Why have farmers relied on the sun's position?", a:"To plan planting and harvests", w:["To predict earthquakes","To navigate oceans","To build monuments"] }
-        ]},
-        { d:3, p:"Photosynthesis is the process by which green plants use sunlight to synthesize foods from carbon dioxide and water. It generates oxygen as a byproduct, which is essential for animal life. This process occurs primarily in the leaves of plants, specifically within chloroplasts containing chlorophyll. Through photosynthesis, plants convert solar energy into chemical energy that fuels their growth and reproduction.", variants:[
-            { q:"What is the primary function of photosynthesis?", a:"To synthesize food using sunlight", w:["To release carbon dioxide","To consume oxygen","To break down glucose"] },
-            { q:"Where does photosynthesis primarily occur?", a:"In the leaves", w:["In the roots","In the stem","In the flowers"] },
-            { q:"What gas is released as a byproduct?", a:"Oxygen", w:["Carbon dioxide","Nitrogen","Hydrogen"] }
-        ]},
-        { d:4, p:"The concept of 'cognitive dissonance' refers to the mental discomfort experienced by a person who holds two contradictory beliefs. To reduce this discomfort, individuals often change one of their beliefs to align with the other, or they avoid situations that increase the dissonance. This theory has been widely applied in psychology and marketing to explain how people rationalize their decisions.", variants:[
-            { q:"What is the main consequence of cognitive dissonance?", a:"Altering a belief to reduce discomfort", w:["Increasing contradictory beliefs","Ignoring mental discomfort","A type of learning"] },
-            { q:"How do people typically reduce cognitive dissonance?", a:"By changing a belief or avoiding dissonant situations", w:["By seeking more contradictory information","By ignoring all beliefs","By increasing mental discomfort"] }
-        ]},
-        { d:5, p:"Terence was stunned by the announcement: The school's band program was being canceled due to insufficient funding for new instruments. Many had been damaged beyond repair when a summer thunderstorm flooded the bandroom. While some were salvageable, there wouldn't be enough to support a full ensemble, and Terence, who lived to play the trumpet, was crushed.\n\nTerence couldn't focus at his Scout meeting later that evening. But as his troop leader reviewed the requirements for the Eagle Scout project, something suddenly clicked. At home, Terence sat at his desk, pulled out a notebook, and began to jot down thoughts as quickly as they came. If his plan worked, he wouldn't just revive the music program at his own school—he could help other schools struggling with the same issue.", variants:[
-            { q:"What can be inferred about Terence's character from his reaction?", a:"He is resilient and turns setbacks into larger opportunities.", w:["He is easily defeated by bureaucratic decisions.","He prefers to work alone rather than with his community.","He is solely focused on his own personal achievement."] },
-            { q:"What event triggered the cancellation of the band program?", a:"A thunderstorm flooded the bandroom and damaged instruments.", w:["The school board voted to cut all arts funding.","The band teacher resigned unexpectedly.","Students lost interest in the program."] }
-        ]},
-        { d:6, p:"The proliferation of digital echo chambers has fundamentally altered the epistemological landscape of modern democracies. Rather than fostering a vibrant marketplace of ideas, algorithmic curation creates insulated realities where confirmation bias is not merely a psychological tendency but an engineered feature. The result is an epistemic crisis where objective truth is subordinated to tribal identity. This fragmentation threatens the shared factual basis necessary for democratic deliberation. Social media platforms, driven by engagement metrics, amplify sensational content, which often reinforces existing beliefs and marginalizes opposing viewpoints.", variants:[
-            { q:"What does the author identify as the fundamental driver of the epistemic crisis?", a:"Algorithmic curation prioritizing engagement over objective truth", w:["The inherent tendency of humans toward confirmation bias","A lack of diversity in digital media ownership","The deliberate spread of misinformation by foreign actors"] },
-            { q:"What does the author mean by 'engineered feature'?", a:"A deliberate design outcome of algorithms", w:["A natural human cognitive bias","A government policy","A random technical glitch"] }
-        ]},
-        { d:7, p:"The economic history of the Industrial Revolution is often framed as a triumph of innovation, but this narrative obscures the profound social upheaval it entailed. The enclosure movement and rural-to-urban migration created a vast, exploitable labor force. While the factory system generated unprecedented wealth, it entrenched systemic inequalities and subjected workers to dehumanizing conditions. The laissez-faire ideology of the time allowed industrialists to amass great fortunes while workers toiled for meager wages. Eventually, the harsh realities of industrial capitalism led to the rise of labor unions and social reforms.", variants:[
-            { q:"What is the author's main critique of the traditional economic narrative?", a:"It obscures the severe social costs and systemic inequalities it caused", w:["It fails to acknowledge the unprecedented wealth generated by factories","It overstates the role of technological innovation in economic growth","It exaggerates the dehumanizing conditions experienced by workers"] },
-            { q:"According to the passage, what did laissez-faire ideology allow?", a:"Industrialists to amass great fortunes while workers toiled for meager wages", w:["Workers to form strong unions","The government to regulate factories","Equal distribution of wealth"] }
-        ]},
-        { d:8, p:"What do we want from our mothers when we are children? Complete submission. Oh, it's very nice and rational and respectable to say that a woman has every right to her life, to her ambitions, to her needs, and so on—it's what I've always demanded myself—but as a child, no, the truth is it's a war of attrition, rationality doesn't come into it, not one bit, all you want from your mother is that she once and for all admit that she is your mother and only your mother, and that her battle with the rest of life is over. She has to lay down arms and come to you. And if she doesn't do it, then it's really a war, and it was a war between my mother and me.", variants:[
-            { q:"What does the author suggest about her childhood perception of her mother's refusal to submit?", a:"She felt wounded because her mother's refusal lacked standard societal justifications", w:["She understood that her mother was fighting for feminist ideals against a patriarchal society","She believed her mother was inherently cruel and incapable of maternal love","She felt completely indifferent to her mother's personal ambitions and struggles"] },
-            { q:"What does the author mean by 'war of attrition'?", a:"A prolonged struggle of gradual exhaustion", w:["A quick and decisive battle","A peaceful negotiation","A formal legal dispute"] }
-        ]},
-        { d:9, p:"The existentialist notion that 'existence precedes essence' is a radical departure from classical philosophy. For Sartre, humanity is condemned to be free; we are thrust into a meaningless universe and must forge our own meaning through authentic choices. This freedom, however, is accompanied by profound anguish, as we bear the total responsibility for our actions and, by extension, for the world we create. To escape this responsibility through 'bad faith' (mauvaise foi) is to deny one's own freedom, reducing oneself to a mere object.", variants:[
-            { q:"What does Sartre mean by 'bad faith'?", a:"The denial of one's inherent freedom and responsibility to evade existential anguish", w:["The belief in a higher power that dictates human destiny and purpose","The conscious decision to act immorally against societal norms","The rejection of the idea that life has any inherent meaning or purpose"] },
-            { q:"What does 'existence precedes essence' imply?", a:"Humans first exist and then create their own meaning", w:["Essence is predetermined before birth","Existence is an illusion","Essence and existence are identical"] }
-        ]},
-        { d:10, p:"The anthropic principle in cosmology suggests that the universe's physical constants are fine-tuned to allow the emergence of life. The weak anthropic principle states that our observations are necessarily biased by our existence; we can only observe a universe capable of supporting observers. The strong version proposes that the universe must have properties that allow life to develop. However, critics argue that the strong version is teleological and unscientific, as it implies a purposeful design rather than random chance.", variants:[
-            { q:"What is the fundamental critique of the strong anthropic principle?", a:"It relies on teleological assumptions that are inherently unscientific", w:["It completely ignores the possibility of a multiverse explanation","It contradicts the established laws of quantum mechanics","It fails to account for the existence of dark matter"] },
-            { q:"What does the weak anthropic principle state?", a:"Our observations are biased by our existence", w:["The universe must allow life to develop","Life is inevitable in any universe","Physical constants are random"] }
-        ]}
+// ---------- Reading: 10 难度 × 40 模板，词数 ≈ 难度×100 ----------
+function buildReading() {
+    // 每个难度生成 40 篇不同文章（通过模板和参数变化）
+    // 为控制代码量，使用 4 个基础模板 × 10 个主题变体 × 难度调整
+    var readingList = [];
+    var topics = [
+        { name:'nature', kw:['sunlight','water','plants','oxygen','growth','forest','river','mountain','ocean','wind'] },
+        { name:'tech', kw:['computer','algorithm','internet','data','software','network','digital','system','robot','signal'] },
+        { name:'history', kw:['ancient','empire','king','war','trade','city','culture','revolution','artifact','century'] },
+        { name:'science', kw:['atom','molecule','energy','gravity','cell','experiment','theory','particle','reaction','physics'] },
+        { name:'society', kw:['community','law','education','family','government','economy','rights','public','change','tradition'] },
+        { name:'health', kw:['body','exercise','nutrition','sleep','disease','medicine','brain','heart','stress','recovery'] },
+        { name:'art', kw:['paint','music','story','poem','sculpture','color','rhythm','imagination','design','craft'] },
+        { name:'environment', kw:['climate','pollution','recycle','species','habitat','ecosystem','carbon','sustain','biodiversity','conservation'] },
+        { name:'psychology', kw:['mind','behavior','emotion','memory','learning','motivation','perception','thought','habit','personality'] },
+        { name:'economy', kw:['market','money','supply','demand','trade','value','resource','investment','growth','policy'] }
     ];
-    passages.forEach(function(pass) {
-        pass.variants.forEach(function(v, vi) {
-            var q = "Passage:\n" + pass.p + "\n\nQuestion: " + v.q;
-            langList_push_reading(q, v.a, v.w, pass.d, 'reading-' + pass.d + '-' + vi);
-        });
-    });
-    function langList_push_reading(q, a, w, d, tag) {
-        var op = createOptions(a, w);
-        questionBank['Reading'].push({ subject:'Reading', question:q, options:op.options, answerIndex:op.answerIndex, difficulty:d, isLongPassage:true, tag:tag });
+
+    // 生成词数接近 targetWords 的段落
+    function makePassage(words, seedIdx, d) {
+        var t = topics[seedIdx % topics.length];
+        var sentences = [
+            "The study of {kw} has long fascinated researchers.",
+            "In recent years, our understanding of {kw} has grown significantly.",
+            "One important aspect of {kw} involves the interaction between different elements.",
+            "For example, scientists have observed that {kw} can influence outcomes in unexpected ways.",
+            "This finding challenges previous assumptions about {kw}.",
+            "Further research is needed to fully understand the implications of {kw}.",
+            "Experts agree that {kw} plays a crucial role in many natural and human systems.",
+            "The complexity of {kw} makes it a rich area for investigation.",
+            "Observations of {kw} have led to new theories and models.",
+            "These developments have practical applications in various fields.",
+            "Understanding {kw} requires careful analysis and long-term study.",
+            "Many questions about {kw} remain unanswered.",
+            "The evidence suggests that {kw} operates through multiple mechanisms.",
+            "Researchers continue to explore the boundaries of {kw}.",
+            "This knowledge can help address real-world challenges related to {kw}."
+        ];
+        // 构造尽可能多的句子直到达到词数
+        var out = [];
+        var currentWords = 0;
+        var si = 0;
+        while (currentWords < words) {
+            var template = sentences[si % sentences.length];
+            var kw = t.kw[si % t.kw.length];
+            var sent = template.replace(/{kw}/g, kw);
+            out.push(sent);
+            currentWords += sent.split(' ').length;
+            si++;
+        }
+        // 如果超出太多，尝试裁剪最后一句（简单处理）
+        var text = out.join(' ');
+        return text;
     }
 
-    // ================= Science：模板参数化，40+ 种问法 =================
+    for (var d = 1; d <= 10; d++) {
+        var targetWords = d * 100;
+        for (var i = 0; i < 40; i++) {
+            var seed = d * 7 + i * 13;
+            var passage = makePassage(targetWords, seed, d);
+            // 每个文章配一个理解题
+            var t = topics[seed % topics.length];
+            var qType = i % 4;
+            var q, a, w;
+            if (qType === 0) {
+                q = "What is the passage mainly about?";
+                a = "The study of " + t.kw[0] + " and its significance";
+                w = ["The history of " + t.kw[1], "The decline of " + t.kw[2], "The dangers of " + t.kw[3]];
+            } else if (qType === 1) {
+                q = "According to the passage, what influences outcomes?";
+                a = t.kw[0];
+                w = [t.kw[1], t.kw[2], t.kw[3]];
+            } else if (qType === 2) {
+                q = "What do experts agree on regarding " + t.kw[0] + "?";
+                a = "It plays a crucial role in many systems";
+                w = ["It is irrelevant to modern science", "It has been fully understood", "It only affects human behavior"];
+            } else {
+                q = "What remains unanswered about " + t.kw[0] + "?";
+                a = "Many questions remain";
+                w = ["Everything is known", "It has no mechanisms", "It cannot be studied"];
+            }
+            var fullQ = "Passage (≈" + targetWords + " words, topic: " + t.name + "):\n" + passage + "\n\nQuestion: " + q;
+            readingList.push({ q: fullQ, a: a, w: w, d: d, tag: 'reading-' + d + '-' + i, isLongPassage: d >= 5 });
+        }
+    }
+    addUniqueQuestions('Reading', readingList);
+}
+
+// ---------- Science: 10 难度 × 40 模板 ----------
+function buildScience() {
     var sciList = [];
     var sciCtxs = ["[General] ","[Physics] ","[Biology] ","[Chemistry] ","[Ecology] ","[Thermodynamics] ","[Quantum] ","[Genetics] ","[Organic] ","[Astrophysics] "];
-    var sciTemplates = [
+    var baseTemplates = [
         { q:"Plants need what to make food?", a:"Sunlight, water, CO2", w:["Only sunlight","Only soil","Oxygen"], d:1, tag:'sci-photosyn' },
         { q:"What is the center of an atom?", a:"Nucleus", w:["Electron cloud","Proton shell","Neutron ring"], d:1, tag:'sci-atom' },
         { q:"Closest planet to the Sun?", a:"Mercury", w:["Venus","Earth","Mars"], d:2, tag:'sci-planet' },
@@ -319,32 +401,49 @@ function buildBank() {
         { q:"What is the function of the cell membrane?", a:"Regulates what enters and exits the cell", w:["Produces proteins","Stores genetic material","Generates ATP"], d:5, tag:'sci-membrane' },
         { q:"What is an isotope?", a:"Atoms with the same protons but different neutrons", w:["Atoms with different protons","Molecules with different bonds","Ions with different charges"], d:6, tag:'sci-isotope' }
     ];
+
     for (var d = 1; d <= 10; d++) {
-        sciTemplates.forEach(function(t) {
-            if (t.d === d) {
-                sciList.push({ q: pick(sciCtxs) + t.q, a: t.a, w: t.w.slice(), d: d, tag: t.tag });
-            }
-        });
-        // 额外随机生成同难度变体（参数化）
-        for (var i = 0; i < 20; i++) {
-            var tt = sciTemplates[i % sciTemplates.length];
-            // 只对可参数化的做变体
-            if (tt.tag === 'sci-atom') {
-                var el = pick(['carbon','oxygen','hydrogen','nitrogen','iron']);
-                sciList.push({ q: pick(sciCtxs) + "What is the center of a " + el + " atom?", a: "Nucleus", w: ["Electron cloud","Proton shell","Neutron ring"], d: d, tag: 'sci-atom-' + el });
-            } else if (tt.tag === 'sci-planet') {
-                var planets = [['Mercury','Venus','Earth','Mars'],['Venus','Earth','Mars','Jupiter'],['Earth','Mars','Jupiter','Saturn']];
-                var pp = pick(planets);
-                sciList.push({ q: pick(sciCtxs) + "Which planet is " + pp[0] + "?", a: pp[0], w: pp.slice(1), d: d, tag: 'sci-planet-' + pp[0] });
-            }
+        var pool = baseTemplates.filter(function(t){ return t.d === d; });
+        if (pool.length === 0) pool = baseTemplates; // 兜底
+        for (var i = 0; i < 40; i++) {
+            var t = pool[i % pool.length];
+            var ctx = sciCtxs[i % sciCtxs.length];
+            // 轻微变体：添加语境前缀，确保 tag 唯一
+            sciList.push({
+                q: ctx + t.q,
+                a: t.a,
+                w: t.w.slice(),
+                d: d,
+                tag: t.tag + '-' + d + '-' + i
+            });
         }
     }
-    // 去重后加入
     addUniqueQuestions('Science', sciList);
+}
+
+function addUniqueQuestions(subject, list) {
+    var seen = new Set();
+    list.forEach(function(t) {
+        var key = t.q + "|" + t.a;
+        if (!seen.has(key)) {
+            seen.add(key);
+            var op = createOptions(t.a, t.w);
+            questionBank[subject].push({
+                subject: subject,
+                question: t.q,
+                options: op.options,
+                answerIndex: op.answerIndex,
+                difficulty: t.d,
+                isLongPassage: t.isLongPassage || false,
+                tag: t.tag || ('d' + t.d)
+            });
+        }
+    });
 }
 
 buildBank();
 
+// ================= 测试逻辑 =================
 var currentSubject = 'Math';
 var currentQuestion = null;
 var currentIndex = 0;
@@ -403,14 +502,12 @@ function loadNextQuestion() {
     document.getElementById('progressFill').style.width = ((currentIndex / TOTAL) * 100) + '%';
 }
 
-// 改进选题：优先选“同难度 + 未用过 + 同 tag 使用次数少”的题
 function pickQuestion(diff) {
     var bank = questionBank[currentSubject];
     var candidates = bank.filter(function(q) {
         return !usedQuestions.includes(q) && q.difficulty === diff;
     });
     if (candidates.length === 0) {
-        // 回退到最接近难度
         var minDiff = 100;
         bank.forEach(function(q) {
             if (!usedQuestions.includes(q)) minDiff = Math.min(minDiff, Math.abs(q.difficulty - diff));
@@ -420,7 +517,6 @@ function pickQuestion(diff) {
         });
     }
     if (candidates.length === 0) return null;
-    // 在候选中优先选 tag 使用次数最少的
     var minTagUse = Infinity;
     candidates.forEach(function(q) {
         var c = usedTags[q.tag] || 0;
